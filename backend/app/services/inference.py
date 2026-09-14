@@ -107,7 +107,7 @@ class YOLOService:
         """
         if self._model is None:
             raise RuntimeError("YOLOService not loaded. Call load() first.")
-
+        
         t0 = time.perf_counter()
 
         try:

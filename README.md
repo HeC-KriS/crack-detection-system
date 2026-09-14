@@ -12,15 +12,15 @@ YOLO v8/v11 model → frame capture → inference → Slack/Email alerts → off
 
 ### Prerequisites
 - Docker + Docker Compose
-- Your trained `best.pt` YOLO model in the project root
+- Your trained `best.pt` YOLO model in the project backend folder
 - (Optional) GPU with CUDA for faster inference
 
 ```bash
 # 1. Clone / unpack this project
 cd crack-detection-system/
 
-# 2. Copy the model
-cp /path/to/best.pt ./best.pt
+# 2. Copy the model to the backend
+cp /path/to/best.pt ./backend/best.pt
 
 # 3. Configure environment
 cp backend/.env.example .env
