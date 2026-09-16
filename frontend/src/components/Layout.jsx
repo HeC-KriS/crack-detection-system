@@ -88,7 +88,9 @@ export default function Layout() {
             <div style={styles.userAvatar}>{user?.username?.[0]?.toUpperCase()}</div>
             <div>
               <div style={styles.username}>{user?.username}</div>
-              <div style={styles.userRole}>Officer</div>
+              <div style={styles.userRole}>
+                {user?.role?.toUpperCase()}
+              </div>
             </div>
           </div>
           <button onClick={logout} style={styles.logoutBtn}>

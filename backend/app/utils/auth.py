@@ -1,51 +1,47 @@
 """
 utils/auth.py — JWT token creation/validation and simple user store.
 
-For production: replace the in-memory USER_DB with a real users table
-and bcrypt password hashing via passlib.
 """
 from __future__ import annotations
 
-import hashlib
-import hmac
+
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import jwt
+import bcrypt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.database import get_db
+from app.models.user import User
 from app.config import get_settings
 
 settings = get_settings()
 
-# ── Simple user store (replace with DB in production) ─────────────────────────
-# Passwords are SHA-256 hex digests. Use bcrypt in production.
-USER_DB: dict[str, dict[str, Any]] = {
-    "admin": {
-        "username": "admin",
-        "password_hash": hashlib.sha256(b"changeme").hexdigest(),
-        "role": "admin",
-    },
-    "officer": {
-        "username": "officer",
-        "password_hash": hashlib.sha256(b"inspect123").hexdigest(),
-        "role": "officer",
-    },
-}
+# ── Password hashing ───────────────────────────────────────────────────────────
+
+def hash_password(password: str) -> str:
+    hashed = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
+    return hashed.decode("utf-8")
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return hmac.compare_digest(
-        hashlib.sha256(plain.encode()).hexdigest(), hashed
-    )
+    return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
 
-
-def authenticate_user(username: str, password: str) -> dict | None:
-    user = USER_DB.get(username)
-    if user and verify_password(password, user["password_hash"]):
-        return user
-    return None
+# ── Database authentication ────────────────────────────────────────────────────
+async def authenticate_user(username: str, password: str, db: AsyncSession) -> User | None:
+    result = await db.execute(select(User).where(User.username == username))
+    user = result.scalar_one_or_none()
+    if not user:
+        return None
+    if not user.is_active:
+        return None
+    if not verify_password(password, user.password_hash):
+        return None
+    return user
 
 
 # ── Token creation ─────────────────────────────────────────────────────────────
@@ -71,7 +67,7 @@ _bearer = HTTPBearer(auto_error=True)
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(_bearer),
+    credentials: HTTPAuthorizationCredentials = Depends(_bearer), db: AsyncSession = Depends(get_db),
 ) -> dict[str, Any]:
     token = credentials.credentials
     try:
@@ -90,12 +86,30 @@ async def get_current_user(
         )
 
     username = payload.get("sub")
-    if not username or username not in USER_DB:
+
+    if not username:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token.",
+        )
+
+    result = await db.execute(
+        select(User).where(User.username == username)
+    )
+    user = result.scalar_one_or_none()
+
+    if not user or not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found.",
         )
-    return {"username": username, "role": payload.get("role", "officer")}
+
+    return {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "role": user.role.value,
+    }
 
 
 async def require_admin(user: dict = Depends(get_current_user)) -> dict:

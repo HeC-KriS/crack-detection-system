@@ -20,7 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select
 
 from app.config import get_settings
-from app.database import AsyncSessionLocal, init_db
+from app.database import AsyncSessionLocal, init_db, create_default_admin
 from app.models.camera import Camera
 from app.services.capture import CaptureManager
 from app.services.inference import YOLOService
@@ -46,6 +46,7 @@ async def lifespan(app: FastAPI):
     # 1. Database
     logger.info("Initialising database...")
     await init_db()
+    await create_default_admin()
 
     # 2. YOLO model
     logger.info("Loading YOLO model...")
