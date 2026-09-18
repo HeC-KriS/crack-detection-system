@@ -49,6 +49,7 @@ class FrameMeta:
     camera_id: int
     captured_at: datetime
     alert_threshold: float
+    mm_per_pixel: float | None = None
 
 
 @dataclass
@@ -165,7 +166,7 @@ class YOLOService:
                 measurement = None
                 if conf >= meta.alert_threshold:
                     try:
-                        measurement = measure_crack(binary_mask)
+                        measurement = measure_crack(binary_mask,meta.mm_per_pixel)
                     except Exception:
                         logger.exception(
                     "Crack measurement failed for frame %s",
@@ -340,6 +341,11 @@ def segmentations_to_json(segmentations: list[SegmentationResult]) -> str:
                     "length_px": s.measurement.length_px,
                     "average_width_px": s.measurement.average_width_px,
                     "max_width_px": s.measurement.max_width_px,
+                    "area_mm2": s.measurement.area_mm2,
+                    "length_mm": s.measurement.length_mm,
+                    "average_width_mm": s.measurement.average_width_mm,
+                    "max_width_mm": s.measurement.max_width_mm,
+    
                 }
                 if s.measurement is not None
                 else None

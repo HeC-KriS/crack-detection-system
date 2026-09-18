@@ -25,7 +25,7 @@ class Camera(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     stream_url: Mapped[str] = mapped_column(String(512), nullable=False)
-
+    mm_per_pixel: Mapped[float | None] = mapped_column(Float, nullable=True)
     # Per-camera overrides (fallback to global settings if NULL)
     frame_interval_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
     alert_threshold: Mapped[float | None] = mapped_column(Float, nullable=True)

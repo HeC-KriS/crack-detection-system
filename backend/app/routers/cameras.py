@@ -54,6 +54,7 @@ async def create_camera(
             camera_id=cam.id,
             camera_name=cam.name,
             stream_url=cam.stream_url,
+            mm_per_pixel=cam.mm_per_pixel,
             frame_interval=_effective_interval(cam),
             alert_threshold=_effective_threshold(cam),
             on_status_change=_make_status_updater(request.app),
@@ -96,13 +97,14 @@ async def update_camera(
     # Restart worker if stream settings changed
     mgr = request.app.state.capture_manager
     if any(k in update_data for k in ("stream_url", "frame_interval_seconds",
-                                       "alert_threshold", "is_active")):
+                                       "alert_threshold", "is_active","mm_per_pixel")):
         await mgr.stop_camera(camera_id)
         if cam.is_active:
             await mgr.start_camera(
                 camera_id=cam.id,
                 camera_name=cam.name,
                 stream_url=cam.stream_url,
+                mm_per_pixel=cam.mm_per_pixel,
                 frame_interval=_effective_interval(cam),
                 alert_threshold=_effective_threshold(cam),
                 on_status_change=_make_status_updater(request.app),
@@ -143,6 +145,7 @@ async def restart_camera(
             camera_id=cam.id,
             camera_name=cam.name,
             stream_url=cam.stream_url,
+            mm_per_pixel=cam.mm_per_pixel,
             frame_interval=_effective_interval(cam),
             alert_threshold=_effective_threshold(cam),
             on_status_change=_make_status_updater(request.app),

@@ -12,6 +12,7 @@ const STATUS_STYLE = {
 const BLANK_FORM = {
   name: "",
   stream_url: "",
+  mm_per_pixel:"",
   frame_interval_seconds: "",
   alert_threshold: "",
   is_active: true,
@@ -51,6 +52,7 @@ export default function Cameras() {
       name: cam.name,
       stream_url: cam.stream_url,
       frame_interval_seconds: cam.frame_interval_seconds ?? "",
+      mm_per_pixel:cam.mm_per_pixel ?? "",
       alert_threshold: cam.alert_threshold ?? "",
       is_active: cam.is_active,
     });
@@ -64,6 +66,7 @@ export default function Cameras() {
     setFormError("");
     const payload = {
       ...form,
+      mm_per_pixel: form.mm_per_pixel ? parseFloat(form.mm_per_pixel) : null,
       frame_interval_seconds: form.frame_interval_seconds ? parseInt(form.frame_interval_seconds) : null,
       alert_threshold: form.alert_threshold ? parseFloat(form.alert_threshold) : null,
     };
@@ -144,6 +147,7 @@ export default function Cameras() {
                   <Param label="Interval" value={cam.frame_interval_seconds ? `${cam.frame_interval_seconds}s` : "default"} />
                   <Param label="Threshold" value={cam.alert_threshold != null ? `${(cam.alert_threshold * 100).toFixed(0)}%` : "default"} />
                   <Param label="Active" value={cam.is_active ? "Yes" : "No"} />
+                  <Param label="Scale" value={cam.mm_per_pixel ? `${cam.mm_per_pixel} mm/px` : "Not calibrated"} />
                   <Param label="Last Seen" value={cam.last_seen_at ? new Date(cam.last_seen_at).toLocaleTimeString() : "Never"} />
                 </div>
 
@@ -190,6 +194,9 @@ export default function Cameras() {
                 <Field label="Alert Threshold (0–1)" type="number" value={form.alert_threshold}
                   placeholder="0.45" step="0.05" min="0" max="1"
                   onChange={(v) => setForm((f) => ({ ...f, alert_threshold: v }))} />
+                <Field label="Scale (mm per pixel)" type="number" value={form.mm_per_pixel}
+                  placeholder="e.g. 0.4032" step="any" min="0.0001"
+                  onChange={(v) => setForm((f) => ({ ...f, mm_per_pixel: v }))} />
               </div>
               <label style={modal.checkLabel}>
                 <input type="checkbox" checked={form.is_active}
@@ -276,7 +283,7 @@ const camCard = {
   urlWrap: {},
   urlLabel: { fontSize: 9, color: "#2a3a5a", letterSpacing: "0.1em", display: "block", marginBottom: 3 },
   url: { fontSize: 11, color: "#4a5a7a", wordBreak: "break-all" },
-  paramRow: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10 },
+  paramRow: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr ", gap: 10 },
   actions: { display: "flex", gap: 8, marginTop: 4 },
   btn: {
     background: "#080c14",

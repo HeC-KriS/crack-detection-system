@@ -209,6 +209,18 @@ function MeasurementPanel({ segmentations }) {
     return null;
   }
 
+  // Show mm if available, otherwise fall back to px. Never throws on missing values.
+  const show = (mm, px, mmDigits, pxDigits, mmUnit, pxUnit) => {
+    if (mm != null) {
+      return {
+        value: `${mm.toFixed(mmDigits)} ${mmUnit}`,
+        sub: px != null ? `${px.toFixed(pxDigits)} ${pxUnit}` : null,
+      };
+    }
+    if (px != null) return { value: `${px.toFixed(pxDigits)} ${pxUnit}`, sub: null };
+    return { value: "—", sub: null };
+  };
+
   return (
     <div style={c.measurements}>
       <div style={c.measurementHeader}>
@@ -217,6 +229,10 @@ function MeasurementPanel({ segmentations }) {
 
       {measuredSegments.map((seg, index) => {
         const m = seg.measurement;
+        const len = show(m.length_mm, m.length_px, 1, 1, "mm", "px");
+        const avg = show(m.average_width_mm, m.average_width_px, 2, 1, "mm", "px");
+        const max = show(m.max_width_mm, m.max_width_px, 2, 1, "mm", "px");
+        const area = show(m.area_mm2, m.area_px, 1, 0, "mm²", "px²");
 
         return (
           <div key={index} style={c.measurementBlock}>
@@ -227,25 +243,10 @@ function MeasurementPanel({ segmentations }) {
             )}
 
             <div style={c.measurementGrid}>
-              <MeasurementValue
-                label="Length"
-                value={`${m.length_px.toFixed(1)} px`}
-              />
-
-              <MeasurementValue
-                label="Avg Width"
-                value={`${m.average_width_px.toFixed(1)} px`}
-              />
-
-              <MeasurementValue
-                label="Max Width"
-                value={`${m.max_width_px.toFixed(1)} px`}
-              />
-
-              <MeasurementValue
-                label="Area"
-                value={`${m.area_px.toFixed(0)} px²`}
-              />
+              <MeasurementValue label="Length" value={len.value} sub={len.sub} />
+              <MeasurementValue label="Avg Width" value={avg.value} sub={avg.sub} />
+              <MeasurementValue label="Max Width" value={max.value} sub={max.sub} />
+              <MeasurementValue label="Area" value={area.value} sub={area.sub} />
             </div>
           </div>
         );
@@ -255,11 +256,13 @@ function MeasurementPanel({ segmentations }) {
 }
 
 
-function MeasurementValue({ label, value }) {
+
+function MeasurementValue({ label, value,sub }) {
   return (
     <div style={c.measurementValue}>
       <div style={c.measurementLabel}>{label}</div>
       <div style={c.measurementNumber}>{value}</div>
+      {sub && <div style={c.measurementSub}>{sub}</div>}
     </div>
   );
 }
@@ -463,6 +466,10 @@ const c = {
     fontSize: 12,
     color: "#cbd5e1",
     fontWeight: 600,
+  },
+  measurementSub: {
+    fontSize: 9,
+    color: "#3a4a6a",
   },
   body: { padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10, flex: 1 },
   topRow: { display: "flex", justifyContent: "space-between", alignItems: "flex-start" },

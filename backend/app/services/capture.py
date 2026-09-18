@@ -43,6 +43,7 @@ class CameraWorker:
         alert_threshold: float,
         pipeline: "ProcessingPipeline",
         on_status_change: "asyncio.Coroutine | None" = None,
+        mm_per_pixel: float | None = None,
     ) -> None:
         self.camera_id = camera_id
         self.camera_name = camera_name
@@ -51,6 +52,7 @@ class CameraWorker:
         self.alert_threshold = alert_threshold
         self.pipeline = pipeline
         self.on_status_change = on_status_change
+        self.mm_per_pixel = mm_per_pixel
 
         self._task: asyncio.Task | None = None
         self._running = False
@@ -144,6 +146,7 @@ class CameraWorker:
             meta = FrameMeta(
                 frame_id=frame_id,
                 camera_id=self.camera_id,
+                mm_per_pixel=self.mm_per_pixel,
                 captured_at=captured_at,
                 alert_threshold=self.alert_threshold,
             )
@@ -205,6 +208,7 @@ class CaptureManager:
         frame_interval: int,
         alert_threshold: float,
         on_status_change=None,
+        mm_per_pixel: float | None = None,
     ) -> None:
         if camera_id in self._workers:
             await self.stop_camera(camera_id)
@@ -217,6 +221,7 @@ class CaptureManager:
             alert_threshold=alert_threshold,
             pipeline=self.pipeline,
             on_status_change=on_status_change,
+            mm_per_pixel=mm_per_pixel,
         )
         self._workers[camera_id] = worker
         worker.start()

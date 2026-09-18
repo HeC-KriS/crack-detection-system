@@ -31,6 +31,7 @@ class TokenResponse(BaseModel):
 class CameraCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=120)
     stream_url: str = Field(..., min_length=1, max_length=512)
+    mm_per_pixel: float | None = Field(None, gt=0)
     frame_interval_seconds: int | None = Field(None, ge=1, le=3600)
     alert_threshold: float | None = Field(None, ge=0.0, le=1.0)
     is_active: bool = True
@@ -39,6 +40,7 @@ class CameraCreate(BaseModel):
 class CameraUpdate(BaseModel):
     name: str | None = Field(None, min_length=1, max_length=120)
     stream_url: str | None = None
+    mm_per_pixel: float | None = Field(None, gt=0)
     frame_interval_seconds: int | None = Field(None, ge=1, le=3600)
     alert_threshold: float | None = Field(None, ge=0.0, le=1.0)
     is_active: bool | None = None
@@ -48,6 +50,7 @@ class CameraOut(BaseModel):
     id: int
     name: str
     stream_url: str
+    mm_per_pixel: float | None = Field(None, gt=0)
     frame_interval_seconds: int | None
     alert_threshold: float | None
     status: str
@@ -70,6 +73,10 @@ class MeasurementItem(BaseModel):
     length_px:float
     average_width_px:float
     max_width_px:float
+    area_mm2: float | None = None
+    length_mm: float | None = None
+    average_width_mm: float | None = None
+    max_width_mm: float | None = None
 
 class SegmentationItem(BaseModel):
     class_name: str
