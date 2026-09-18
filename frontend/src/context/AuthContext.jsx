@@ -23,11 +23,28 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async (username, password) => {
     const { data } = await authAPI.login(username, password);
+
     localStorage.setItem("access_token", data.access_token);
-    const userObj = { username, expiresIn: data.expires_in };
+
+    const payload = JSON.parse(
+      atob(data.access_token.split(".")[1])
+    );
+
+    const userObj = {
+      username,
+      role: payload.role,
+      expiresIn: data.expires_in,
+    };
+
     localStorage.setItem("user", JSON.stringify(userObj));
     setUser(userObj);
+
     return userObj;
+  }, []);
+
+  const signup = useCallback(async (username, email, password) => {
+    const { data } = await authAPI.signup(username, email, password);
+    return data;
   }, []);
 
   const logout = useCallback(() => {
@@ -37,7 +54,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, signup }}>
       {children}
     </AuthContext.Provider>
   );

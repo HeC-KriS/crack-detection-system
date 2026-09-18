@@ -12,15 +12,15 @@ YOLO v8/v11 model → frame capture → inference → Slack/Email alerts → off
 
 ### Prerequisites
 - Docker + Docker Compose
-- Your trained `best.pt` YOLO model in the project root
+- Your trained `best.pt` YOLO model in the project backend folder
 - (Optional) GPU with CUDA for faster inference
 
 ```bash
 # 1. Clone / unpack this project
 cd crack-detection-system/
 
-# 2. Copy the model
-cp /path/to/best.pt ./best.pt
+# 2. Copy the model to the backend
+cp /path/to/best.pt ./backend/best.pt
 
 # 3. Configure environment
 cp backend/.env.example .env
@@ -34,9 +34,18 @@ docker compose up --build -d
 # API docs:  http://localhost:8000/api/docs  (dev mode only)
 ```
 
-Default credentials: `admin / changeme` or `officer / inspect123`
-> **Change these immediately** in `backend/app/utils/auth.py` or via a users table.
+Authentication uses database-backed users with two roles:
 
+- `ADMIN` — full system and camera management access
+- `OFFICER` — access to monitoring data and verification workflow
+
+The default admin account is created from the following `.env` settings on first startup:
+
+- `ADMIN_USERNAME`
+- `ADMIN_EMAIL`
+- `ADMIN_PASSWORD`
+
+Officers can create accounts through the Sign Up page.
 ---
 
 ## Development Setup (without Docker)
@@ -91,7 +100,8 @@ crack-detection-system/
 │   │   │   ├── camera.py        ← Camera ORM model
 │   │   │   ├── inference.py     ← InferenceRecord ORM model
 │   │   │   ├── feedback.py      ← OfficerFeedback ORM model
-│   │   │   └── notification.py  ← NotificationLog ORM model
+│   │   │   ├── notification.py  ← NotificationLog ORM model 
+│   │   │   └── user.py          ← User + role ORM models
 │   │   ├── schemas/
 │   │   │   └── __init__.py      ← All Pydantic request/response schemas
 │   │   ├── services/
@@ -101,7 +111,7 @@ crack-detection-system/
 │   │   │   ├── notification.py  ← Slack + Email with cooldown
 │   │   │   └── storage.py       ← Flagged image filesystem storage
 │   │   ├── routers/
-│   │   │   ├── auth.py          ← Login endpoint
+│   │   │   ├── auth.py          ← Login + officer signup
 │   │   │   ├── cameras.py       ← Camera CRUD + runtime control
 │   │   │   ├── inferences.py    ← List/detail/image endpoints
 │   │   │   ├── feedback.py      ← Officer verdict submission
@@ -145,8 +155,14 @@ crack-detection-system/
 ### Authentication
 ```
 POST /api/v1/auth/login
-Body: { "username": "admin", "password": "changeme" }
-Response: { "access_token": "...", "expires_in": 3600 }
+Body: { "username": "admin", "password": "<admin-password>" }
+
+POST /api/v1/auth/signup
+Body: {
+  "username": "officer1",
+  "email": "officer@example.com",
+  "password": "<password>"
+}
 ```
 
 All other endpoints require: `Authorization: Bearer <token>`
@@ -249,6 +265,9 @@ Key `.env` variables:
 | `SLACK_ENABLED` | `false` | Enable Slack notifications |
 | `SLACK_BOT_TOKEN` | — | `xoxb-…` from your Slack app |
 | `EMAIL_ENABLED` | `false` | Enable email notifications |
+| `ADMIN_USERNAME` | `admin` | Default admin username |
+| `ADMIN_EMAIL` | — | Default admin email |
+| `ADMIN_PASSWORD` | — | Default admin password |
 
 ---
 
@@ -328,13 +347,10 @@ supports connection pooling — set `pool_size` and `max_overflow` in `database.
 
 1. **JWT Secrets**: `SECRET_KEY` must be at least 32 random bytes. Use `openssl rand -hex 32`.
 
-2. **User Management**: The current `USER_DB` dict is for demonstration only. 
-   For production, add a `users` table with bcrypt password hashing via `passlib`:
-   ```python
-   from passlib.context import CryptContext
-   pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-   ```
-
+2. **User Management**: Users are stored in the database with bcrypt password
+   hashing. The system supports `ADMIN` and `OFFICER` roles. The default admin
+   account is created from the `ADMIN_USERNAME`, `ADMIN_EMAIL`, and
+   `ADMIN_PASSWORD` environment variables on startup.
 3. **Stream URL Security**: Camera stream URLs may contain credentials. Store them 
    in the DB (they're encrypted at rest if you enable PostgreSQL TDE) and never 
    expose them in API responses.

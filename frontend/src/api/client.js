@@ -20,10 +20,10 @@ client.interceptors.request.use((config) => {
 client.interceptors.response.use(
   (res) => res,
   (error) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && !error.config.url.includes("/auth/login")) {
       localStorage.removeItem("access_token");
       window.location.href = "/login";
-    }
+    } 
     return Promise.reject(error);
   }
 );
@@ -34,6 +34,8 @@ export default client;
 export const authAPI = {
   login: (username, password) =>
     client.post("/auth/login", { username, password }),
+  signup: (username, email, password) =>
+    client.post("/auth/signup", { username, email, password }),
 };
 
 // ── Cameras ───────────────────────────────────────────────────────────────────

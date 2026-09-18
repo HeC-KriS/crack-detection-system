@@ -12,9 +12,10 @@ alembic==1.14.0             # DB migrations
 
 # ── Auth ───────────────────────────────────────────────────────────────────────
 PyJWT==2.10.0
+bcrypt==5.0.0
 
 # ── ML / Vision ────────────────────────────────────────────────────────────────
-ultralytics==8.3.55         # YOLO v8/v11
+ultralytics==8.4.149
 opencv-python-headless==4.10.0.84
 numpy==1.26.4
 torch>=2.1.0                # CPU build; add --index-url for CUDA builds

@@ -1,7 +1,7 @@
 // pages/Queue.jsx — Officer verification queue
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { inferencesAPI } from "../api/client";
+import client, { inferencesAPI } from "../api/client";
 import FeedbackModal from "../components/FeedbackModal";
 
 const VERDICT_STYLES = {
@@ -59,6 +59,33 @@ function SegmentationOverlay({ segmentations, imageRef }) {
 function InferenceCard({ item, highlighted, onVerify }) {
   const imageRef = useRef(null);
   const [imgError, setImgError] = useState(false);
+  const [imageSrc, setImageSrc] = useState(null);
+
+  useEffect(() => {
+    let objectUrl;
+
+    const loadImage = async () => {
+      try {
+        const response = await client.get(
+          `/inferences/${item.id}/image`,
+          { responseType: "blob" }
+        );
+
+        objectUrl = URL.createObjectURL(response.data);
+        setImageSrc(objectUrl);
+      } catch (error) {
+        console.error("Failed to load inference image:", error);
+        setImgError(true);
+      }
+    };
+
+    loadImage();
+
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [item.id]);
+
   const verdict = item.feedback ? VERDICT_STYLES[item.feedback.verdict] : null;
 
   return (
@@ -75,7 +102,7 @@ function InferenceCard({ item, highlighted, onVerify }) {
           <>
             <img
               ref={imageRef}
-              src={item.annotated_image_url}
+              src={imageSrc}
               alt="Annotated crack detection"
               style={c.image}
               onError={() => setImgError(true)}
