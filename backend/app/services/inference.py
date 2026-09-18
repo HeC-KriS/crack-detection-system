@@ -21,7 +21,9 @@ import cv2
 import numpy as np
 
 from app.config import get_settings
-
+from app.services.Crack_Measurement import( CrackMeasurement,
+    measure_crack,
+)
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
@@ -38,7 +40,7 @@ class SegmentationResult:
     class_name: str
     confidence: float
     polygon: list[list[float]]  # [[x, y], ...]
-    area_px: float
+    measurement: CrackMeasurement | None = None
 
 
 @dataclass
@@ -116,6 +118,7 @@ class YOLOService:
                 device=self._device,
                 verbose=False,
                 conf=0.25,  # low pre-filter; we apply meta.alert_threshold ourselves
+                retina_masks=True
             )
         except Exception as exc:
             logger.exception("YOLO prediction failed for frame %s", meta.frame_id)
@@ -154,12 +157,27 @@ class YOLOService:
                 conf = float(result.boxes.conf[i].item()) if result.boxes else 0.0
                 # xy gives [[x,y],...] polygon in pixel coords
                 polygon = mask.xy[0].tolist() if len(mask.xy) > 0 else []
-                area = float(np.sum(mask.data[0].cpu().numpy()))
+
+                maskArr = mask.data[0].cpu().numpy()
+                binary_mask = np.where(
+                    maskArr > 0.5,255,0).astype(np.uint8)
+
+                measurement = None
+                if conf >= meta.alert_threshold:
+                    try:
+                        measurement = measure_crack(binary_mask)
+                    except Exception:
+                        logger.exception(
+                    "Crack measurement failed for frame %s",
+                    meta.frame_id,
+                    )
+                      
                 segmentations.append(SegmentationResult(
                     class_name=class_names.get(cls_id, str(cls_id)),
                     confidence=conf,
                     polygon=polygon,
-                    area_px=area,
+                    measurement=measurement
+
                 ))
 
         # ── Threshold filter ────────────────────────────────────────────────
@@ -192,48 +210,112 @@ class YOLOService:
     # ── Annotation ─────────────────────────────────────────────────────────────
 
     def _annotate(
-        self,
-        frame_bgr: np.ndarray,
-        detections: list[DetectionBox],
-        segmentations: list[SegmentationResult],
-        meta: FrameMeta,
+    self,
+    frame_bgr: np.ndarray,
+    detections: list[DetectionBox],
+    segmentations: list[SegmentationResult],
+    meta: FrameMeta,
     ) -> bytes:
-        """Draw bounding boxes, segmentation overlays, and metadata onto a frame copy."""
+        
+        
+        """Draw bounding boxes, segmentation overlays, measurements and metadata."""
         img = frame_bgr.copy()
         overlay = img.copy()
 
-        # Colour: red for crack
         CRACK_BGR = (0, 0, 220)
         MASK_BGR = (0, 80, 255)
+        TEXT_BGR = (255, 255, 255)
         ALPHA = 0.35
 
-        # Draw segmentation masks first (underneath boxes)
+    # ---------------------------------------------------------
+    # Draw segmentation masks first
+    # ---------------------------------------------------------
         for seg in segmentations:
-            pts = np.array(seg.polygon, dtype=np.int32).reshape((-1, 1, 2))
-            if len(pts) >= 3:
+            if len(seg.polygon) >= 3:
+                pts = np.array(seg.polygon, dtype=np.int32).reshape((-1, 1, 2))
                 cv2.fillPoly(overlay, [pts], MASK_BGR)
 
-        cv2.addWeighted(overlay, ALPHA, img, 1 - ALPHA, 0, img)
+        cv2.addWeighted(
+            overlay,
+            ALPHA,
+            img,
+            1 - ALPHA,
+            0,
+            img,
+        )
 
-        # Draw bounding boxes + labels
+    # ---------------------------------------------------------
+    # Draw bounding boxes + measurements
+    # ---------------------------------------------------------
         for det in detections:
             x1, y1, x2, y2 = (int(v) for v in det.bbox)
-            cv2.rectangle(img, (x1, y1), (x2, y2), CRACK_BGR, 2)
+
+            cv2.rectangle(
+                img,
+                (x1, y1),
+                (x2, y2),
+                CRACK_BGR,
+                2,
+            )
+
             label = f"{det.class_name} {det.confidence:.0%}"
-            (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.55, 1)
-            cv2.rectangle(img, (x1, y1 - th - 8), (x1 + tw + 4, y1), CRACK_BGR, -1)
-            cv2.putText(img, label, (x1 + 2, y1 - 4),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 1, cv2.LINE_AA)
 
-        # Timestamp + camera overlay
-        ts = meta.captured_at.strftime("%Y-%m-%d %H:%M:%S UTC")
+            (tw, th), _ = cv2.getTextSize(
+                label,
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.55,
+                1,
+            )
+
+        # Label background
+            cv2.rectangle(
+                img,
+                (x1, y1 - th - 8),
+                (x1 + tw + 4, y1),
+                CRACK_BGR,
+                -1,
+            )
+
+        # Label text
+            cv2.putText(
+                img,
+                label,
+                (x1 + 2, y1 - 4),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.55,
+                (255, 255, 255),
+                1,
+                cv2.LINE_AA,
+            )
+
+    # ---------------------------------------------------------
+    # Timestamp + camera information
+    # ---------------------------------------------------------
+        ts = meta.captured_at.strftime(
+           "%Y-%m-%d %H:%M:%S UTC"
+        )
+
         cam_text = f"CAM {meta.camera_id} | {ts}"
-        cv2.putText(img, cam_text, (10, img.shape[0] - 10),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.45, (200, 200, 200), 1, cv2.LINE_AA)
 
+        cv2.putText(
+            img,
+            cam_text,
+            (10, img.shape[0] - 10),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.45,
+            (200, 200, 200),
+            1,
+            cv2.LINE_AA,
+        )
+
+    # ---------------------------------------------------------
+    # Encode image
+    # ---------------------------------------------------------
         ok, buf = cv2.imencode(".png", img)
+
         if not ok:
             raise RuntimeError("cv2.imencode failed")
+
         return buf.tobytes()
 
 
@@ -252,7 +334,16 @@ def segmentations_to_json(segmentations: list[SegmentationResult]) -> str:
             "class_name": s.class_name,
             "confidence": s.confidence,
             "polygon": s.polygon,
-            "area_px": s.area_px,
+            "measurement": (
+                {
+                    "area_px": s.measurement.area_px,
+                    "length_px": s.measurement.length_px,
+                    "average_width_px": s.measurement.average_width_px,
+                    "max_width_px": s.measurement.max_width_px,
+                }
+                if s.measurement is not None
+                else None
+            ),
         }
         for s in segmentations
     ])

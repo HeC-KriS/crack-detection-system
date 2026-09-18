@@ -61,11 +61,17 @@ class DetectionItem(BaseModel):
     confidence: float
     bbox: list[float]  # [x1, y1, x2, y2] in pixel coords
 
+class MeasurementItem(BaseModel):
+    area_px:float
+    length_px:float
+    average_width_px:float
+    max_width_px:float
+
 class SegmentationItem(BaseModel):
     class_name: str
     confidence: float
     polygon: list[list[float]]  # [[x, y], ...]
-    area_px: float | None = None
+    measurement: MeasurementItem | None = None
 
 
 # ── Inference Record ───────────────────────────────────────────────────────────

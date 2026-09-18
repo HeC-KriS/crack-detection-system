@@ -11,7 +11,7 @@ from fastapi.responses import Response
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-
+import logging
 from app.database import get_db
 from app.models.camera import Camera
 from app.models.feedback import OfficerFeedback
@@ -25,7 +25,7 @@ from app.schemas import (
 )
 from app.services.storage import StorageService
 from app.utils.auth import get_current_user
-
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/inferences", tags=["inferences"])
 storage = StorageService()
 
@@ -44,8 +44,9 @@ def _build_record_out(rec: InferenceRecord, camera_name: str | None = None) -> I
         try:
             raw = json.loads(rec.segmentation_json)
             segmentations = [SegmentationItem(**s) for s in raw]
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.exception("Failed to parse segmentation JSON for inference %s: %s", rec.id, exc)
+            
 
     annotated_url = None
     if rec.annotated_image_path:

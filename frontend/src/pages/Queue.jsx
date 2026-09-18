@@ -136,6 +136,7 @@ function InferenceCard({ item, highlighted, onVerify }) {
             <Chip label={`${item.inference_latency_ms.toFixed(0)}ms`} />
           )}
         </div>
+        <MeasurementPanel segmentations={item.segmentations} />
 
         {item.feedback?.comment && (
           <div style={c.comment}>"{item.feedback.comment}"</div>
@@ -172,6 +173,70 @@ function Chip({ label, accent }) {
     </span>
   );
 }
+function MeasurementPanel({ segmentations }) {
+  const measuredSegments = segmentations?.filter(
+    (seg) => seg.measurement
+  ) || [];
+
+  if (measuredSegments.length === 0) {
+    return null;
+  }
+
+  return (
+    <div style={c.measurements}>
+      <div style={c.measurementHeader}>
+        CRACK MEASUREMENTS
+      </div>
+
+      {measuredSegments.map((seg, index) => {
+        const m = seg.measurement;
+
+        return (
+          <div key={index} style={c.measurementBlock}>
+            {measuredSegments.length > 1 && (
+              <div style={c.crackLabel}>
+                CRACK {index + 1}
+              </div>
+            )}
+
+            <div style={c.measurementGrid}>
+              <MeasurementValue
+                label="Length"
+                value={`${m.length_px.toFixed(1)} px`}
+              />
+
+              <MeasurementValue
+                label="Avg Width"
+                value={`${m.average_width_px.toFixed(1)} px`}
+              />
+
+              <MeasurementValue
+                label="Max Width"
+                value={`${m.max_width_px.toFixed(1)} px`}
+              />
+
+              <MeasurementValue
+                label="Area"
+                value={`${m.area_px.toFixed(0)} px²`}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+
+function MeasurementValue({ label, value }) {
+  return (
+    <div style={c.measurementValue}>
+      <div style={c.measurementLabel}>{label}</div>
+      <div style={c.measurementNumber}>{value}</div>
+    </div>
+  );
+}
+
 
 export default function Queue() {
   const [searchParams] = useSearchParams();
@@ -320,6 +385,57 @@ const c = {
     fontWeight: 800,
     color: "#fff",
     letterSpacing: "0.02em",
+  },
+  measurements: {
+  background: "#080c14",
+  border: "1px solid #1e2942",
+  borderRadius: 6,
+  padding: "10px 12px",
+  },
+
+  measurementHeader: {
+   fontSize: 9,
+   fontWeight: 700,
+   color: "#4a5a7a",
+   letterSpacing: "0.08em",
+   marginBottom: 8,
+  },
+
+  measurementBlock: {
+    borderTop: "1px solid #151e30",
+    paddingTop: 8,
+  },
+
+  crackLabel: {
+    fontSize: 9,
+    color: "#60a5fa",
+    fontWeight: 700,
+    marginBottom: 7,
+    letterSpacing: "0.06em",
+  },
+
+  measurementGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(2, 1fr)",
+    gap: 8,
+  },
+
+  measurementValue: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 2,
+  },
+
+  measurementLabel: {
+    fontSize: 9,
+    color: "#3a4a6a",
+    textTransform: "uppercase",
+  },
+
+  measurementNumber: {
+    fontSize: 12,
+    color: "#cbd5e1",
+    fontWeight: 600,
   },
   body: { padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10, flex: 1 },
   topRow: { display: "flex", justifyContent: "space-between", alignItems: "flex-start" },
