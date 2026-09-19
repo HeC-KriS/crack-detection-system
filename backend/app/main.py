@@ -119,6 +119,7 @@ from app.routers.cameras import router as cameras_router
 from app.routers.feedback import router as feedback_router
 from app.routers.inferences import router as inferences_router
 from app.routers.stats import router as stats_router
+from app.routers.pipelines import router as pipelines_router
 
 API_PREFIX = "/api/v1"
 
@@ -127,6 +128,8 @@ app.include_router(cameras_router, prefix=API_PREFIX)
 app.include_router(inferences_router, prefix=API_PREFIX)
 app.include_router(feedback_router, prefix=API_PREFIX)
 app.include_router(stats_router, prefix=API_PREFIX)
+app.include_router(pipelines_router, prefix=API_PREFIX)
+
 
 
 @app.get("/health")

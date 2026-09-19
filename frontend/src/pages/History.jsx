@@ -29,10 +29,10 @@ function TableRow({ item }) {
         {v ? (
           <span style={{ ...t.verdictChip, color: v.color }}>{v.label}</span>
         ) : (
-          <span style={{ ...t.verdictChip, color: "#4a5a7a" }}>Pending</span>
+          <span style={{ ...t.verdictChip, color: "var(--text-muted)" }}>Pending</span>
         )}
       </td>
-      <td style={{ ...t.cell, color: "#4a5a7a", maxWidth: 200 }}>
+      <td style={{ ...t.cell, color: "var(--text-muted)", maxWidth: 200 }}>
         {item.feedback?.comment ? (
           <span title={item.feedback.comment}>
             {item.feedback.comment.length > 60
@@ -113,11 +113,11 @@ export default function History() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={7} style={{ ...t.cell, textAlign: "center", padding: 40, color: "#3a4a6a" }}>
+              <tr><td colSpan={7} style={{ ...t.cell, textAlign: "center", padding: 40, color: "var(--text-dim)" }}>
                 Loading…
               </td></tr>
             ) : items.length === 0 ? (
-              <tr><td colSpan={7} style={{ ...t.cell, textAlign: "center", padding: 40, color: "#3a4a6a" }}>
+              <tr><td colSpan={7} style={{ ...t.cell, textAlign: "center", padding: 40, color: "var(--text-dim)" }}>
                 No records found.
               </td></tr>
             ) : (
@@ -140,18 +140,18 @@ export default function History() {
 
 const t = {
   table: { width: "100%", borderCollapse: "collapse", fontSize: 12 },
-  headerRow: { borderBottom: "1px solid #1e2942" },
+  headerRow: { borderBottom: "1px solid var(--border)" },
   th: {
     padding: "10px 14px",
     textAlign: "left",
     fontSize: 9,
-    color: "#3a4a6a",
+    color: "var(--text-dim)",
     letterSpacing: "0.12em",
     textTransform: "uppercase",
     fontWeight: 700,
   },
-  row: { borderBottom: "1px solid #111827", transition: "background 0.1s" },
-  cell: { padding: "11px 14px", color: "#94a3b8", verticalAlign: "middle" },
+  row: { borderBottom: "1px solid var(--border)" , transition: "background 0.1s" },
+  cell: { padding: "11px 14px", color: "var(--text-muted)", verticalAlign: "middle" },
   confChip: {
     padding: "3px 7px",
     borderRadius: 4,
@@ -170,11 +170,11 @@ const p = {
     alignItems: "flex-start",
     marginBottom: 24,
   },
-  title: { fontSize: 22, fontWeight: 700, color: "#e2e8f0", margin: 0 },
-  sub: { fontSize: 11, color: "#3a4a6a", marginTop: 6 },
+  title: { fontSize: 22, fontWeight: 700, color: "var(--text)", margin: 0 },
+  sub: { fontSize: 11, color: "var(--text-dim)", marginTop: 6 },
   exportBtn: {
-    background: "#0d1a2e",
-    border: "1px solid #1e3a5c",
+    background: "var(--panel)",
+    border: "1px solid var(--border-strong)",
     borderRadius: 6,
     padding: "10px 16px",
     fontSize: 11,
@@ -185,8 +185,8 @@ const p = {
     letterSpacing: "0.06em",
   },
   tableWrap: {
-    background: "#0d1321",
-    border: "1px solid #1e2942",
+    background: "var(--panel)",
+    border: "1px solid var(--border)",
     borderRadius: 8,
     overflow: "hidden",
   },
@@ -198,14 +198,14 @@ const p = {
     marginTop: 24,
   },
   pageBtn: {
-    background: "#0d1321",
-    border: "1px solid #1e2942",
+    background: "var(--panel)",
+    border: "1px solid var(--border)",
     borderRadius: 6,
     padding: "8px 16px",
-    color: "#4a5a7a",
+    color: "var(--text-muted)",
     cursor: "pointer",
     fontFamily: "'DM Mono', monospace",
     fontSize: 12,
   },
-  pageInfo: { fontSize: 12, color: "#3a4a6a" },
+  pageInfo: { fontSize: 12, color: "var(--text-dim)" },
 };

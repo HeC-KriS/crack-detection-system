@@ -15,16 +15,16 @@ function StatCard({ label, value, color, sub }) {
 
 const card = {
   root: {
-    background: "#0d1321",
-    border: "1px solid #1e2942",
+    background: "var(--panel)",
+    border: "1px solid var(--border)",
     borderTop: "2px solid",
     borderRadius: 8,
     padding: "20px 22px",
     minWidth: 0,
   },
-  value: { fontSize: 34, fontWeight: 700, color: "#e2e8f0", letterSpacing: "-0.02em", lineHeight: 1 },
-  label: { fontSize: 10, color: "#4a5a7a", letterSpacing: "0.1em", textTransform: "uppercase", marginTop: 8 },
-  sub: { fontSize: 11, color: "#3a4a6a", marginTop: 4 },
+  value: { fontSize: 34, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em", lineHeight: 1 },
+  label: { fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.1em", textTransform: "uppercase", marginTop: 8 },
+  sub: { fontSize: 11, color: "var(--text-dim)", marginTop: 4 },
 };
 
 function CameraStatusDot({ status }) {
@@ -75,11 +75,11 @@ const row = {
     alignItems: "center",
     gap: 12,
     padding: "12px 0",
-    borderBottom: "1px solid #111827",
+    borderBottom: "1px solid var(--border)",
   },
   dot: { flexShrink: 0 },
-  title: { fontSize: 13, color: "#cbd5e1" },
-  ts: { fontSize: 11, color: "#3a4a6a", marginTop: 2 },
+  title: { fontSize: 13, color: "var(--text)" },
+  ts: { fontSize: 11, color: "var(--text-dim)", marginTop: 2 },
   conf: { fontSize: 14, fontWeight: 700, letterSpacing: "0.02em", minWidth: 44, textAlign: "right" },
   badge: {
     fontSize: 10,
@@ -176,8 +176,8 @@ export default function Dashboard() {
 const p = {
   root: { padding: "32px 36px", fontFamily: "'DM Mono', monospace", maxWidth: 1200 },
   header: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 32 },
-  pageTitle: { fontSize: 22, fontWeight: 700, color: "#e2e8f0", margin: 0, letterSpacing: "-0.01em" },
-  pageSubtitle: { fontSize: 11, color: "#3a4a6a", marginTop: 6, letterSpacing: "0.05em" },
+  pageTitle: { fontSize: 22, fontWeight: 700, color: "var(--text)", margin: 0, letterSpacing: "-0.01em" },
+  pageSubtitle: { fontSize: 11, color: "var(--text-dim)", marginTop: 6, letterSpacing: "0.05em" },
   liveIndicator: {
     display: "flex",
     alignItems: "center",
@@ -201,8 +201,8 @@ const p = {
   },
   statsGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 16, marginBottom: 36 },
   section: {
-    background: "#0d1321",
-    border: "1px solid #1e2942",
+    background: "var(--panel)",
+    border: "1px solid var(--border)",
     borderRadius: 8,
     padding: "20px 22px",
   },
@@ -212,9 +212,9 @@ const p = {
     alignItems: "center",
     marginBottom: 16,
   },
-  sectionTitle: { fontSize: 12, color: "#94a3b8", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 700 },
+  sectionTitle: { fontSize: 12, color: "var(--text-muted)", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 700 },
   sectionLink: { fontSize: 12, color: "#3b82f6", textDecoration: "none" },
   tableWrap: {},
-  loading: { color: "#3a4a6a", fontSize: 13 },
-  empty: { color: "#3a4a6a", fontSize: 13, textAlign: "center", padding: 24 },
+  loading: { color: "var(--text-dim)", fontSize: 13 },
+  empty: { color: "var(--text-dim)", fontSize: 13, textAlign: "center", padding: 24 },
 };

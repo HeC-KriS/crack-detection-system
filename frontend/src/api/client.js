@@ -48,6 +48,15 @@ export const camerasAPI = {
   restart: (id) => client.post(`/cameras/${id}/restart`),
 };
 
+// ── Pipelines ────────────────────────────────────────────────────────────────
+export const pipelinesAPI = {
+  list: () => client.get("/pipelines"),
+  get: (id) => client.get(`/pipelines/${id}`),
+  create: (data) => client.post("/pipelines", data),
+  update: (id, data) => client.patch(`/pipelines/${id}`, data),
+  delete: (id) => client.delete(`/pipelines/${id}`),
+};
+
 // ── Inferences ────────────────────────────────────────────────────────────────
 export const inferencesAPI = {
   list: (params) => client.get("/inferences", { params }),

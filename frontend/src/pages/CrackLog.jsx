@@ -119,15 +119,23 @@ function TableRow({ item }) {
 
       {/* Pipeline / Camera */}
       <td style={styles.cell}>
-        <span style={styles.camera}>
-          CAM {item.camera_id}
-        </span>
-
-        {item.camera_name && (
-          <span style={styles.cameraName}>
-            {" · " + item.camera_name}
-          </span>
+        {item.pipeline_name && (
+          <div style={styles.pipeline}>
+            {item.pipeline_name}
+          </div>
         )}
+
+        <div>
+          <span style={styles.camera}>
+            CAM {item.camera_id}
+          </span>
+
+          {item.camera_name && (
+            <span style={styles.cameraName}>
+              {" · " + item.camera_name}
+            </span>
+          )}
+        </div>
       </td>
 
       {/* Confidence */}
@@ -155,8 +163,8 @@ function TableRow({ item }) {
 
       {/* Verification time */}
       <td style={styles.cell}>
-        {feedback?.created_at
-          ? new Date(feedback.created_at).toLocaleString()
+        {feedback?.submitted_at
+          ? new Date(feedback.submitted_at).toLocaleString()
           : "—"}
       </td>
 
@@ -186,6 +194,7 @@ const styles = {
   root: {
     padding: "32px 36px",
     fontFamily: "'DM Mono', monospace",
+    color: "var(--text)",
   },
 
   header: {
@@ -198,31 +207,31 @@ const styles = {
   title: {
     fontSize: 22,
     fontWeight: 700,
-    color: "#e2e8f0",
+    color: "var(--text)",
     margin: 0,
   },
 
   sub: {
     fontSize: 11,
-    color: "#3a4a6a",
+    color: "var(--text-muted)",
     marginTop: 6,
   },
 
   refreshBtn: {
-    background: "#0d1a2e",
-    border: "1px solid #1e3a5c",
+    background: "var(--panel)",
+    border: "1px solid var(--border-strong)",
     borderRadius: 6,
     padding: "10px 16px",
     fontSize: 11,
     fontWeight: 700,
-    color: "#60a5fa",
+    color: "var(--navy)",
     cursor: "pointer",
     fontFamily: "'DM Mono', monospace",
   },
 
   tableWrap: {
-    background: "#0d1321",
-    border: "1px solid #1e2942",
+    background: "var(--panel)",
+    border: "1px solid var(--border)",
     borderRadius: 8,
     overflow: "auto",
   },
@@ -234,14 +243,14 @@ const styles = {
   },
 
   headerRow: {
-    borderBottom: "1px solid #1e2942",
+    borderBottom: "1px solid var(--border)",
   },
 
   th: {
     padding: "10px 14px",
     textAlign: "left",
     fontSize: 9,
-    color: "#3a4a6a",
+    color: "var(--text-muted)",
     letterSpacing: "0.12em",
     textTransform: "uppercase",
     fontWeight: 700,
@@ -249,31 +258,37 @@ const styles = {
   },
 
   row: {
-    borderBottom: "1px solid #111827",
+    borderBottom: "1px solid var(--border)",
   },
 
   cell: {
     padding: "12px 14px",
-    color: "#94a3b8",
+    color: "var(--text-secondary)",
     verticalAlign: "middle",
     whiteSpace: "nowrap",
   },
 
   camera: {
-    color: "#cbd5e1",
+    color: "var(--text)",
     fontWeight: 600,
   },
 
   cameraName: {
-    color: "#4a5a7a",
+    color: "var(--text-muted)",
   },
 
   confidence: {
-    color: "#ef4444",
-    background: "rgba(239,68,68,0.1)",
+    color: "var(--red)",
+    background: "rgba(163, 69, 58, 0.1)",
     padding: "3px 7px",
     borderRadius: 4,
     fontSize: 11,
     fontWeight: 700,
+  },
+
+  pipeline: {
+    color: "var(--text)",
+    fontWeight: 700,
+    marginBottom: 3,
   },
 };

@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     # ── Admin ──────────────────────────────────────────────────────────────
     ADMIN_USERNAME: str = "admin"
     ADMIN_EMAIL: str = ""
-    ADMIN_PASSWORD: str = "admin123"
+    ADMIN_PASSWORD: str = ""
 
     # ── Database ───────────────────────────────────────────────────────────
     DATABASE_URL: str = "sqlite+aiosqlite:///./crack_detection.db"
@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     # DATABASE_URL = "postgresql+asyncpg://user:pass@localhost:5432/crackdb"
 
     # ── ML Model ───────────────────────────────────────────────────────────
-    MODEL_PATH: str = "best-2.pt"
+    MODEL_PATH: str = "best.pt"
     INFERENCE_DEVICE: str = "cpu"           # "cpu" | "cuda" | "mps"
     INFERENCE_WORKERS: int = 2              # parallel frame-processing coroutines
     INFERENCE_QUEUE_MAX: int = 50           # drop frames if queue backs up past this

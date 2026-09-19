@@ -1,5 +1,6 @@
+// pages/PipelineLog.jsx — Pipeline and camera history
 import { useCallback, useEffect, useState } from "react";
-import { camerasAPI, inferencesAPI } from "../api/client";
+import { camerasAPI, inferencesAPI, pipelinesAPI } from "../api/client";
 
 const VERDICT_MAP = {
   true_positive: {
@@ -25,6 +26,10 @@ function PipelineRow({ item }) {
     <tr style={styles.row}>
       <td style={styles.cell}>
         {new Date(item.captured_at).toLocaleString()}
+      </td>
+
+      <td style={styles.cell}>
+        {item.camera_name || `Camera #${item.camera_id}`}
       </td>
 
       <td style={styles.cell}>
@@ -73,7 +78,7 @@ function PipelineRow({ item }) {
       <td
         style={{
           ...styles.cell,
-          color: "#4a5a7a",
+          color: "var(--text-secondary)",
           maxWidth: 220,
         }}
       >
@@ -88,38 +93,59 @@ function PipelineRow({ item }) {
 }
 
 export default function PipelineLog() {
+  const [pipelines, setPipelines] = useState([]);
   const [cameras, setCameras] = useState([]);
+
+  const [selectedPipeline, setSelectedPipeline] = useState("");
   const [selectedCamera, setSelectedCamera] = useState("");
+
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
 
+  const [loadingPipelines, setLoadingPipelines] = useState(true);
   const [loadingCameras, setLoadingCameras] = useState(true);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
-  // Load available pipelines/cameras
   useEffect(() => {
-    const loadCameras = async () => {
+    const loadData = async () => {
       try {
-        const { data } = await camerasAPI.list();
-        setCameras(data || []);
+        const [pipelineResponse, cameraResponse] =
+          await Promise.all([
+            pipelinesAPI.list(),
+            camerasAPI.list(),
+          ]);
 
-        // Select the first pipeline/camera automatically
-        if (data && data.length > 0) {
-          setSelectedCamera(String(data[0].id));
+        const pipelineData = pipelineResponse.data || [];
+        const cameraData = cameraResponse.data || [];
+
+        setPipelines(pipelineData);
+        setCameras(cameraData);
+
+        if (pipelineData.length > 0) {
+          setSelectedPipeline(String(pipelineData[0].id));
         }
       } catch (error) {
-        console.error("Failed to load cameras:", error);
+        console.error("Failed to load pipeline data:", error);
       } finally {
+        setLoadingPipelines(false);
         setLoadingCameras(false);
       }
     };
 
-    loadCameras();
+    loadData();
   }, []);
 
-  // Load history whenever selected pipeline changes
+  const pipelineCameras = cameras.filter(
+    (camera) =>
+      String(camera.pipeline_id) === String(selectedPipeline)
+  );
+
+  useEffect(() => {
+    setSelectedCamera("");
+  }, [selectedPipeline]);
+
   const fetchHistory = useCallback(async () => {
-    if (!selectedCamera) {
+    if (!selectedPipeline) {
       setItems([]);
       setTotal(0);
       return;
@@ -128,12 +154,18 @@ export default function PipelineLog() {
     setLoadingHistory(true);
 
     try {
-      const { data } = await inferencesAPI.list({
+      const params = {
         page: 1,
         page_size: 100,
-        camera_id: selectedCamera,
+        pipeline_id: selectedPipeline,
         crack_only: true,
-      });
+      };
+
+      if (selectedCamera) {
+        params.camera_id = selectedCamera;
+      }
+
+      const { data } = await inferencesAPI.list(params);
 
       setItems(data.items || []);
       setTotal(data.total || 0);
@@ -144,19 +176,24 @@ export default function PipelineLog() {
     } finally {
       setLoadingHistory(false);
     }
-  }, [selectedCamera]);
+  }, [selectedPipeline, selectedCamera]);
 
   useEffect(() => {
     fetchHistory();
   }, [fetchHistory]);
 
-  const selectedPipeline = cameras.find(
-    (camera) => String(camera.id) === String(selectedCamera)
+  const selectedPipelineData = pipelines.find(
+    (pipeline) =>
+      String(pipeline.id) === String(selectedPipeline)
+  );
+
+  const selectedCameraData = cameras.find(
+    (camera) =>
+      String(camera.id) === String(selectedCamera)
   );
 
   return (
     <div style={styles.root}>
-
       {/* HEADER */}
       <div style={styles.header}>
         <div>
@@ -169,46 +206,78 @@ export default function PipelineLog() {
           </div>
         </div>
 
-        {/* PIPELINE SELECTOR */}
-        <select
-          value={selectedCamera}
-          onChange={(e) =>
-            setSelectedCamera(e.target.value)
-          }
-          disabled={loadingCameras}
-          style={styles.select}
-        >
-          <option value="">
-            Select Pipeline / Camera
-          </option>
-
-          {cameras.map((camera) => (
-            <option
-              key={camera.id}
-              value={camera.id}
-            >
-              {camera.name}
+        <div style={styles.selectGroup}>
+          <select
+            value={selectedPipeline}
+            onChange={(e) =>
+              setSelectedPipeline(e.target.value)
+            }
+            disabled={loadingPipelines}
+            style={styles.select}
+          >
+            <option value="">
+              Select Pipeline
             </option>
-          ))}
-        </select>
+
+            {pipelines.map((pipeline) => (
+              <option
+                key={pipeline.id}
+                value={pipeline.id}
+              >
+                {pipeline.name}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={selectedCamera}
+            onChange={(e) =>
+              setSelectedCamera(e.target.value)
+            }
+            disabled={
+              loadingCameras ||
+              !selectedPipeline ||
+              pipelineCameras.length === 0
+            }
+            style={styles.select}
+          >
+            <option value="">
+              All Cameras
+            </option>
+
+            {pipelineCameras.map((camera) => (
+              <option
+                key={camera.id}
+                value={camera.id}
+              >
+                {camera.name}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* SELECTED PIPELINE CARD */}
-      {selectedPipeline && (
+      {selectedPipelineData && (
         <div style={styles.pipelineCard}>
-
           <div>
             <div style={styles.label}>
               SELECTED PIPELINE
             </div>
 
             <div style={styles.pipelineName}>
-              {selectedPipeline.name}
+              {selectedPipelineData.name}
             </div>
 
             <div style={styles.pipelineId}>
-              CAMERA ID #{selectedPipeline.id}
+              PIPELINE ID #{selectedPipelineData.id}
             </div>
+
+            {selectedCameraData && (
+              <div style={styles.pipelineId}>
+                CAMERA · {selectedCameraData.name}
+              </div>
+            )}
           </div>
 
           <div style={styles.recordCount}>
@@ -220,19 +289,20 @@ export default function PipelineLog() {
               {total}
             </div>
           </div>
-
         </div>
       )}
 
       {/* HISTORY TABLE */}
       <div style={styles.tableWrap}>
-
         <table style={styles.table}>
-
           <thead>
             <tr style={styles.headerRow}>
               <th style={styles.th}>
                 Detection Time
+              </th>
+
+              <th style={styles.th}>
+                Camera
               </th>
 
               <th style={styles.th}>
@@ -258,37 +328,33 @@ export default function PipelineLog() {
           </thead>
 
           <tbody>
-
             {loadingHistory ? (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={7}
                   style={styles.empty}
                 >
                   Loading pipeline history…
                 </td>
               </tr>
-
-            ) : !selectedCamera ? (
+            ) : !selectedPipeline ? (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={7}
                   style={styles.empty}
                 >
                   Select a pipeline to view its history.
                 </td>
               </tr>
-
             ) : items.length === 0 ? (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={7}
                   style={styles.empty}
                 >
-                  No crack records found for this pipeline.
+                  No crack records found.
                 </td>
               </tr>
-
             ) : (
               items.map((item) => (
                 <PipelineRow
@@ -297,13 +363,9 @@ export default function PipelineLog() {
                 />
               ))
             )}
-
           </tbody>
-
         </table>
-
       </div>
-
     </div>
   );
 }
@@ -312,6 +374,7 @@ const styles = {
   root: {
     padding: "32px 36px",
     fontFamily: "'DM Mono', monospace",
+    color: "var(--text)",
   },
 
   header: {
@@ -324,31 +387,36 @@ const styles = {
   title: {
     fontSize: 22,
     fontWeight: 700,
-    color: "#e2e8f0",
+    color: "var(--text)",
     margin: 0,
   },
 
   sub: {
     fontSize: 11,
-    color: "#3a4a6a",
+    color: "var(--text-muted)",
     marginTop: 6,
   },
 
+  selectGroup: {
+    display: "flex",
+    gap: 8,
+  },
+
   select: {
-    minWidth: 230,
-    background: "#0d1321",
-    border: "1px solid #1e2942",
+    minWidth: 190,
+    background: "var(--panel)",
+    border: "1px solid var(--border-strong)",
     borderRadius: 6,
     padding: "10px 12px",
-    color: "#94a3b8",
+    color: "var(--text-secondary)",
     fontFamily: "'DM Mono', monospace",
     fontSize: 11,
     outline: "none",
   },
 
   pipelineCard: {
-    background: "#0d1321",
-    border: "1px solid #1e2942",
+    background: "var(--panel)",
+    border: "1px solid var(--border)",
     borderRadius: 8,
     padding: "18px 20px",
     marginBottom: 20,
@@ -359,7 +427,7 @@ const styles = {
 
   label: {
     fontSize: 9,
-    color: "#3a4a6a",
+    color: "var(--text-muted)",
     letterSpacing: "0.12em",
     marginBottom: 5,
   },
@@ -367,12 +435,12 @@ const styles = {
   pipelineName: {
     fontSize: 16,
     fontWeight: 700,
-    color: "#e2e8f0",
+    color: "var(--text)",
   },
 
   pipelineId: {
     fontSize: 10,
-    color: "#4a5a7a",
+    color: "var(--text-muted)",
     marginTop: 4,
   },
 
@@ -383,12 +451,12 @@ const styles = {
   count: {
     fontSize: 20,
     fontWeight: 700,
-    color: "#60a5fa",
+    color: "var(--navy)",
   },
 
   tableWrap: {
-    background: "#0d1321",
-    border: "1px solid #1e2942",
+    background: "var(--panel)",
+    border: "1px solid var(--border)",
     borderRadius: 8,
     overflow: "hidden",
   },
@@ -400,26 +468,26 @@ const styles = {
   },
 
   headerRow: {
-    borderBottom: "1px solid #1e2942",
+    borderBottom: "1px solid var(--border)",
   },
 
   th: {
     padding: "10px 14px",
     textAlign: "left",
     fontSize: 9,
-    color: "#3a4a6a",
+    color: "var(--text-muted)",
     letterSpacing: "0.12em",
     textTransform: "uppercase",
     fontWeight: 700,
   },
 
   row: {
-    borderBottom: "1px solid #111827",
+    borderBottom: "1px solid var(--border)",
   },
 
   cell: {
     padding: "11px 14px",
-    color: "#94a3b8",
+    color: "var(--text-secondary)",
     verticalAlign: "middle",
   },
 
@@ -437,12 +505,12 @@ const styles = {
 
   pending: {
     fontSize: 11,
-    color: "#4a5a7a",
+    color: "var(--text-muted)",
   },
 
   empty: {
     padding: 40,
     textAlign: "center",
-    color: "#3a4a6a",
+    color: "var(--text-muted)",
   },
 };
