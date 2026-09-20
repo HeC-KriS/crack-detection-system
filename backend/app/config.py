@@ -24,6 +24,11 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
+    # ── Admin ──────────────────────────────────────────────────────────────
+    ADMIN_USERNAME: str = "admin"
+    ADMIN_EMAIL: str = ""
+    ADMIN_PASSWORD: str = ""
+
     # ── Database ───────────────────────────────────────────────────────────
     DATABASE_URL: str = "sqlite+aiosqlite:///./crack_detection.db"
     # PostgreSQL example:

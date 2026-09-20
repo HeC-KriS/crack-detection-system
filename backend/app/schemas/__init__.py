@@ -15,28 +15,58 @@ class LoginRequest(BaseModel):
     username: str
     password: str
 
+class SignupRequest(BaseModel):
+    username: str = Field(..., min_length=3, max_length=50)
+    email: str = Field(..., max_length=255)
+    password: str = Field(..., min_length=8)    
 
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     expires_in: int  # seconds
 
+# ── Pipeline ───────────────────────────────────────────────────────────────────
+
+class PipelineCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=120)
+    description: str | None = Field(None, max_length=2000)
+    is_active: bool = True
+
+
+class PipelineUpdate(BaseModel):
+    name: str | None = Field(None, min_length=1, max_length=120)
+    description: str | None = Field(None, max_length=2000)
+    is_active: bool | None = None
+
+
+class PipelineOut(BaseModel):
+    id: int
+    name: str
+    description: str | None
+    is_active: bool
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
 
 # ── Camera ─────────────────────────────────────────────────────────────────────
 
 class CameraCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=120)
     stream_url: str = Field(..., min_length=1, max_length=512)
+    pipeline_id: int | None = None
     frame_interval_seconds: int | None = Field(None, ge=1, le=3600)
     alert_threshold: float | None = Field(None, ge=0.0, le=1.0)
+    mm_per_pixel: float | None = Field(None, gt=0)
     is_active: bool = True
 
 
 class CameraUpdate(BaseModel):
     name: str | None = Field(None, min_length=1, max_length=120)
     stream_url: str | None = None
+    pipeline_id: int | None = None
     frame_interval_seconds: int | None = Field(None, ge=1, le=3600)
     alert_threshold: float | None = Field(None, ge=0.0, le=1.0)
+    mm_per_pixel: float | None = Field(None, gt=0)
     is_active: bool | None = None
 
 
@@ -44,9 +74,11 @@ class CameraOut(BaseModel):
     id: int
     name: str
     stream_url: str
+    pipeline_id: int | None
     frame_interval_seconds: int | None
     alert_threshold: float | None
     status: str
+    mm_per_pixel: float | None
     is_active: bool
     last_seen_at: datetime | None
     created_at: datetime
@@ -60,12 +92,16 @@ class DetectionItem(BaseModel):
     class_name: str
     confidence: float
     bbox: list[float]  # [x1, y1, x2, y2] in pixel coords
+    angle_deg: float | None = None
+    distance_mm: float | None = None
+
 
 class SegmentationItem(BaseModel):
     class_name: str
     confidence: float
     polygon: list[list[float]]  # [[x, y], ...]
     area_px: float | None = None
+    measurement: dict[str, Any] | None = None
 
 
 # ── Inference Record ───────────────────────────────────────────────────────────
@@ -75,6 +111,8 @@ class InferenceRecordOut(BaseModel):
     frame_id: str
     camera_id: int
     camera_name: str | None = None
+    pipeline_id: int | None = None
+    pipeline_name: str | None = None
     captured_at: datetime
     processed_at: datetime
     crack_detected: bool

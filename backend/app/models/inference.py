@@ -9,6 +9,12 @@ from datetime import datetime
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from app.models.camera import Camera
+    from app.models.feedback import OfficerFeedback
+    from app.models.notification import NotificationLog
+
 from app.database import Base
 
 

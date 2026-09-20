@@ -12,6 +12,12 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from app.models.camera import Camera
+    from app.models.feedback import OfficerFeedback
+    from app.models.notification import NotificationLog
+
 from app.database import get_db
 from app.models.camera import Camera
 from app.models.feedback import OfficerFeedback
@@ -30,7 +36,12 @@ router = APIRouter(prefix="/inferences", tags=["inferences"])
 storage = StorageService()
 
 
-def _build_record_out(rec: InferenceRecord, camera_name: str | None = None) -> InferenceRecordOut:
+def _build_record_out(
+    rec: InferenceRecord,
+    camera_name: str | None = None,
+    pipeline_id: int | None = None,
+    pipeline_name: str | None = None,
+) -> InferenceRecordOut:
     detections = []
     if rec.detections_json:
         try:
@@ -60,6 +71,8 @@ def _build_record_out(rec: InferenceRecord, camera_name: str | None = None) -> I
         frame_id=rec.frame_id,
         camera_id=rec.camera_id,
         camera_name=camera_name,
+        pipeline_id=pipeline_id,
+        pipeline_name=pipeline_name,
         captured_at=rec.captured_at,
         processed_at=rec.processed_at,
         crack_detected=rec.crack_detected,
@@ -79,6 +92,7 @@ async def list_inferences(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     camera_id: int | None = Query(None),
+    pipeline_id: int | None = Query(None),
     verified: bool | None = Query(None),
     crack_only: bool = Query(True),
     db: AsyncSession = Depends(get_db),
@@ -92,6 +106,8 @@ async def list_inferences(
 
     if camera_id is not None:
         stmt = stmt.where(InferenceRecord.camera_id == camera_id)
+    if pipeline_id is not None:
+        stmt = stmt.join(Camera).where(Camera.pipeline_id == pipeline_id)
     if verified is not None:
         stmt = stmt.where(InferenceRecord.is_verified == verified)
     if crack_only:
@@ -107,13 +123,32 @@ async def list_inferences(
 
     # Fetch camera names in one query
     cam_ids = list({r.camera_id for r in records})
-    cam_map: dict[int, str] = {}
-    if cam_ids:
-        cam_result = await db.execute(select(Camera).where(Camera.id.in_(cam_ids)))
-        for cam in cam_result.scalars():
-            cam_map[cam.id] = cam.name
+    cam_map = {}
 
-    items = [_build_record_out(r, cam_map.get(r.camera_id)) for r in records]
+    if cam_ids:
+        cam_result = await db.execute(
+            select(Camera)
+            .where(Camera.id.in_(cam_ids))
+            .options(selectinload(Camera.pipeline))
+        )
+
+        for cam in cam_result.scalars():
+            cam_map[cam.id] = cam
+
+    items = [
+        _build_record_out(
+            r,
+            cam_map[r.camera_id].name if r.camera_id in cam_map else None,
+            cam_map[r.camera_id].pipeline_id if r.camera_id in cam_map else None,
+            (
+                cam_map[r.camera_id].pipeline.name
+                if r.camera_id in cam_map
+                and cam_map[r.camera_id].pipeline
+                else None
+            ),
+        )
+        for r in records
+    ]
     return InferenceListResponse(total=total, page=page, page_size=page_size, items=items)
 
 
@@ -126,12 +161,12 @@ async def get_inference(
     rec = await db.get(
         InferenceRecord,
         inference_id,
-        options=[selectinload(InferenceRecord.feedback)],
+        options=[selectinload(InferenceRecord.feedback), selectinload(InferenceRecord.camera).selectinload(Camera.pipeline)],
     )
     if not rec:
         raise HTTPException(status_code=404, detail="Inference record not found.")
     cam = await db.get(Camera, rec.camera_id)
-    return _build_record_out(rec, cam.name if cam else None)
+    return _build_record_out(rec, cam.name if cam else None, cam.pipeline_id if cam else None, cam.pipeline.name if cam and cam.pipeline else None,)
 
 
 @router.get("/{inference_id}/image")

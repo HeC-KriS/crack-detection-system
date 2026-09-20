@@ -6,6 +6,8 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Queue from "./pages/Queue";
 import History from "./pages/History";
+import PipelineLog from "./pages/PipelineLog";
+import CrackLog from "./pages/CrackLog";
 import Cameras from "./pages/Cameras";
 
 function ProtectedRoute({ children }) {
@@ -35,6 +37,8 @@ function AppRoutes() {
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="queue" element={<Queue />} />
         <Route path="history" element={<History />} />
+        <Route path="pipeline-log" element={<PipelineLog />} />
+        <Route path="crack-log" element={<CrackLog />} />
         <Route path="cameras" element={<Cameras />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

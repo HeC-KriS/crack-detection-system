@@ -20,10 +20,10 @@ client.interceptors.request.use((config) => {
 client.interceptors.response.use(
   (res) => res,
   (error) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && !error.config.url.includes("/auth/login")) {
       localStorage.removeItem("access_token");
       window.location.href = "/login";
-    }
+    } 
     return Promise.reject(error);
   }
 );
@@ -34,6 +34,8 @@ export default client;
 export const authAPI = {
   login: (username, password) =>
     client.post("/auth/login", { username, password }),
+  signup: (username, email, password) =>
+    client.post("/auth/signup", { username, email, password }),
 };
 
 // ── Cameras ───────────────────────────────────────────────────────────────────
@@ -44,6 +46,15 @@ export const camerasAPI = {
   update: (id, data) => client.patch(`/cameras/${id}`, data),
   delete: (id) => client.delete(`/cameras/${id}`),
   restart: (id) => client.post(`/cameras/${id}/restart`),
+};
+
+// ── Pipelines ────────────────────────────────────────────────────────────────
+export const pipelinesAPI = {
+  list: () => client.get("/pipelines"),
+  get: (id) => client.get(`/pipelines/${id}`),
+  create: (data) => client.post("/pipelines", data),
+  update: (id, data) => client.patch(`/pipelines/${id}`, data),
+  delete: (id) => client.delete(`/pipelines/${id}`),
 };
 
 // ── Inferences ────────────────────────────────────────────────────────────────

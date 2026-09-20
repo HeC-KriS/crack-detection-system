@@ -20,7 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select
 
 from app.config import get_settings
-from app.database import AsyncSessionLocal, init_db
+from app.database import AsyncSessionLocal, init_db, create_default_admin
 from app.models.camera import Camera
 from app.services.capture import CaptureManager
 from app.services.inference import YOLOService
@@ -46,6 +46,7 @@ async def lifespan(app: FastAPI):
     # 1. Database
     logger.info("Initialising database...")
     await init_db()
+    await create_default_admin()
 
     # 2. YOLO model
     logger.info("Loading YOLO model...")
@@ -118,6 +119,7 @@ from app.routers.cameras import router as cameras_router
 from app.routers.feedback import router as feedback_router
 from app.routers.inferences import router as inferences_router
 from app.routers.stats import router as stats_router
+from app.routers.pipelines import router as pipelines_router
 
 API_PREFIX = "/api/v1"
 
@@ -126,6 +128,8 @@ app.include_router(cameras_router, prefix=API_PREFIX)
 app.include_router(inferences_router, prefix=API_PREFIX)
 app.include_router(feedback_router, prefix=API_PREFIX)
 app.include_router(stats_router, prefix=API_PREFIX)
+app.include_router(pipelines_router, prefix=API_PREFIX)
+
 
 
 @app.get("/health")

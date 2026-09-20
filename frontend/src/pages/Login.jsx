@@ -4,25 +4,35 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, signup } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ username: "", password: "" });
+  const [form, setForm] = useState({ username: "", email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isSignup, setIsSignup] = useState(false);
+  const [success, setSuccess] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setSuccess("");
     setLoading(true);
+
     try {
-      await login(form.username, form.password);
-      navigate("/dashboard");
+      if (isSignup) {
+        await signup(form.username, form.email, form.password);
+        setIsSignup(false);
+        setSuccess("Account created. You can now log in.");
+      } else {
+        await login(form.username, form.password);
+        navigate("/dashboard");
+      }
     } catch (err) {
       setError(err.response?.data?.detail || "Authentication failed.");
     } finally {
       setLoading(false);
     }
-  };
+};
 
   return (
     <div style={styles.root}>
@@ -56,6 +66,22 @@ export default function Login() {
               required
             />
           </div>
+          {isSignup && (
+            <div style={styles.fieldGroup}>
+              <label style={styles.label}>EMAIL</label>
+              <input
+                style={styles.input}
+                type="email"
+                autoComplete="email"
+                value={form.email}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, email: e.target.value }))
+                }
+                placeholder="Enter email"
+                required
+              />
+            </div>
+          )}
 
           <div style={styles.fieldGroup}>
             <label style={styles.label}>PASSWORD</label>
@@ -70,18 +96,52 @@ export default function Login() {
             />
           </div>
 
-          {error && <div style={styles.error}>{error}</div>}
+          {error &&<div style={styles.error}>{error}</div>}
 
           <button
             type="submit"
             disabled={loading}
             style={{ ...styles.submitBtn, ...(loading ? styles.submitBtnDisabled : {}) }}
           >
-            {loading ? "AUTHENTICATING…" : "ACCESS SYSTEM"}
+            {loading ? (isSignup ? "CREATING ACCOUNT…" : "AUTHENTICATING…") : (isSignup ? "CREATE ACCOUNT" : "ACCESS SYSTEM")}
           </button>
         </form>
 
-        <p style={styles.hint}>Authorized personnel only. All access is logged.</p>
+        <div style={styles.toggleArea}>
+          {isSignup ? (
+            <>
+              <span style={styles.toggleText}>Already have an account?</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSignup(false);
+                  setError("");
+                }}
+                style={styles.toggleBtn}
+              >
+                LOGIN
+              </button>
+            </>
+          ) : (
+            <>
+              <span style={styles.toggleText}>Need an account?</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSignup(true);
+                  setError("");
+                }}
+                style={styles.toggleBtn}
+              >
+                SIGN UP
+              </button>
+            </>
+          )}
+        </div>
+
+        <p style={styles.hint}>
+          Authorized personnel only. All access is logged.
+        </p>
       </div>
     </div>
   );
@@ -196,5 +256,36 @@ const styles = {
     marginTop: 20,
     marginBottom: 0,
     letterSpacing: "0.05em",
+  },
+
+  toggleArea: {
+    textAlign: "center",
+    marginTop: 18,
+  },
+
+  toggleText: {
+    fontSize: 10,
+    color: "#4a5a7a",
+    marginRight: 8,
+  },
+
+  toggleBtn: {
+    background: "none",
+    border: "none",
+    color: "#60a5fa",
+    fontSize: 10,
+    fontWeight: 700,
+    cursor: "pointer",
+    fontFamily: "inherit",
+    letterSpacing: "0.08em",
+  },
+  
+  success: {
+    background: "rgba(34,197,94,0.1)",
+    border: "1px solid rgba(34,197,94,0.3)",
+    borderRadius: 6,
+    padding: "10px 14px",
+    fontSize: 12,
+    color: "#86efac",
   },
 };

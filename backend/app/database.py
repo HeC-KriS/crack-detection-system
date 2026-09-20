@@ -7,6 +7,7 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -65,3 +66,28 @@ async def init_db() -> None:
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+async def create_default_admin() -> None:
+    """Create the predefined admin account if one does not already exist."""
+
+    from app.models.user import User, UserRole
+    from app.utils.auth import hash_password
+
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(User).where(User.role == UserRole.ADMIN)
+        )
+        admin = result.scalar_one_or_none()
+
+        if admin:
+            return
+
+        admin = User(
+            username=settings.ADMIN_USERNAME,
+            email=settings.ADMIN_EMAIL,
+            password_hash=hash_password(settings.ADMIN_PASSWORD),
+            role=UserRole.ADMIN,
+        )
+
+        session.add(admin)
+        await session.commit()

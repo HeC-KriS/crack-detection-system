@@ -1,29 +1,37 @@
-# ── Core ───────────────────────────────────────────────────────────────────────
+# Core
 fastapi==0.115.5
 uvicorn[standard]==0.32.1
 pydantic==2.10.3
 pydantic-settings==2.6.1
 
-# ── Database ───────────────────────────────────────────────────────────────────
+# Database
 sqlalchemy==2.0.36
-aiosqlite==0.20.0           # SQLite async driver
-asyncpg==0.30.0             # PostgreSQL async driver (comment out if using SQLite only)
-alembic==1.14.0             # DB migrations
+aiosqlite==0.20.0
+asyncpg==0.30.0
+alembic==1.14.0
 
-# ── Auth ───────────────────────────────────────────────────────────────────────
+# Auth
 PyJWT==2.10.0
+bcrypt==5.0.0
 
-# ── ML / Vision ────────────────────────────────────────────────────────────────
-ultralytics==8.3.55         # YOLO v8/v11
-opencv-python-headless==4.10.0.84
+# ML / Vision
+ultralytics==8.4.149
 numpy==1.26.4
-torch>=2.1.0                # CPU build; add --index-url for CUDA builds
+scipy==1.17.1
+scikit-image==0.26.0
+skan==0.13.0
+
+# Use contrib OpenCV for ximgproc.thinning
+opencv-contrib-python==4.10.0.84
+
+# PyTorch
+torch>=2.1.0
 torchvision>=0.16.0
 
-# ── Notifications ──────────────────────────────────────────────────────────────
+# Notifications
 slack-sdk==3.33.4
 
-# ── Utilities ──────────────────────────────────────────────────────────────────
-python-multipart==0.0.20    # form data (needed by FastAPI)
-httpx==0.28.0               # async HTTP (used by tests)
+# Utilities
+python-multipart==0.0.20
+httpx==0.28.0
 python-dotenv==1.0.1

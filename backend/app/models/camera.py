@@ -6,8 +6,13 @@ from __future__ import annotations
 import enum
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Enum, Float, Integer, String, func
+from sqlalchemy import Boolean, DateTime, Enum, Float, ForeignKey, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from app.models.inference import InferenceRecord
+    from app.models.pipeline import Pipeline
 
 from app.database import Base
 
@@ -25,11 +30,15 @@ class Camera(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     stream_url: Mapped[str] = mapped_column(String(512), nullable=False)
+    pipeline_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("pipelines.id", ondelete="SET NULL"), nullable=True, index=True,)
 
     # Per-camera overrides (fallback to global settings if NULL)
     frame_interval_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
     alert_threshold: Mapped[float | None] = mapped_column(Float, nullable=True)
 
+    # Calibration scale: physical millimetres represented by one image pixel.
+    # NULL means measurements are kept in pixel units only.
+    mm_per_pixel: Mapped[float | None] = mapped_column(Float, nullable=True)
     status: Mapped[CameraStatus] = mapped_column(
         Enum(CameraStatus), default=CameraStatus.OFFLINE, nullable=False
     )
@@ -47,6 +56,9 @@ class Camera(Base):
     )
 
     # Relationships
+    pipeline: Mapped["Pipeline | None"] = relationship(
+        back_populates="cameras"
+    )
     inference_records: Mapped[list["InferenceRecord"]] = relationship(  # noqa: F821
         back_populates="camera", cascade="all, delete-orphan"
     )

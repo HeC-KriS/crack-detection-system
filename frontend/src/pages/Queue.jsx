@@ -1,7 +1,7 @@
 // pages/Queue.jsx — Officer verification queue
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { inferencesAPI } from "../api/client";
+import client, { inferencesAPI } from "../api/client";
 import FeedbackModal from "../components/FeedbackModal";
 
 const VERDICT_STYLES = {
@@ -59,13 +59,40 @@ function SegmentationOverlay({ segmentations, imageRef }) {
 function InferenceCard({ item, highlighted, onVerify }) {
   const imageRef = useRef(null);
   const [imgError, setImgError] = useState(false);
+  const [imageSrc, setImageSrc] = useState(null);
+
+  useEffect(() => {
+    let objectUrl;
+
+    const loadImage = async () => {
+      try {
+        const response = await client.get(
+          `/inferences/${item.id}/image`,
+          { responseType: "blob" }
+        );
+
+        objectUrl = URL.createObjectURL(response.data);
+        setImageSrc(objectUrl);
+      } catch (error) {
+        console.error("Failed to load inference image:", error);
+        setImgError(true);
+      }
+    };
+
+    loadImage();
+
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [item.id]);
+
   const verdict = item.feedback ? VERDICT_STYLES[item.feedback.verdict] : null;
 
   return (
     <div
       style={{
         ...c.card,
-        border: highlighted ? "1px solid #f59e0b" : "1px solid #1e2942",
+        border: highlighted ? "1px solid #f59e0b" : "1px solid var(--border)",
         boxShadow: highlighted ? "0 0 20px rgba(245,158,11,0.15)" : "none",
       }}
     >
@@ -75,7 +102,7 @@ function InferenceCard({ item, highlighted, onVerify }) {
           <>
             <img
               ref={imageRef}
-              src={item.annotated_image_url}
+              src={imageSrc}
               alt="Annotated crack detection"
               style={c.image}
               onError={() => setImgError(true)}
@@ -93,7 +120,7 @@ function InferenceCard({ item, highlighted, onVerify }) {
               <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
               <polyline points="21 15 16 10 5 21"/>
             </svg>
-            <span style={{ fontSize: 11, color: "#2a3a5a", marginTop: 8 }}>
+            <span style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 8 }}>
               {imgError ? "Image unavailable" : "No image stored"}
             </span>
           </div>
@@ -137,6 +164,11 @@ function InferenceCard({ item, highlighted, onVerify }) {
           )}
         </div>
 
+        <MeasurementPanel
+          segmentations={item.segmentations}
+          detections={item.detections}
+        />
+
         {item.feedback?.comment && (
           <div style={c.comment}>"{item.feedback.comment}"</div>
         )}
@@ -145,14 +177,127 @@ function InferenceCard({ item, highlighted, onVerify }) {
           onClick={() => onVerify(item)}
           style={{
             ...c.verifyBtn,
-            background: item.is_verified ? "#0d1a2e" : "#1d4ed8",
+            background: item.is_verified ? "var(--panel)" : "#1d4ed8",
             color: item.is_verified ? "#3b82f6" : "#fff",
-            border: item.is_verified ? "1px solid #1e3a5c" : "none",
+            border: item.is_verified ? "1px solid var(--border-strong)" : "none",
           }}
         >
           {item.is_verified ? "Edit Verdict" : "Submit Verdict"}
         </button>
       </div>
+    </div>
+  );
+}
+
+
+function MeasurementPanel({ segmentations, detections }) {
+  const measuredSegments = segmentations || [];
+  const detectedCracks = detections || [];
+
+  if (measuredSegments.length === 0 && detectedCracks.length === 0) {
+    return null;
+  }
+
+  const fmt = (value, digits = 2) =>
+    value == null || Number.isNaN(Number(value))
+      ? "—"
+      : Number(value).toFixed(digits);
+
+  // Match each segmentation/measurement with the detection at the same index
+  const count = Math.max(
+    measuredSegments.length,
+    detectedCracks.length
+  );
+
+  return (
+    <div style={c.measurementPanel}>
+      <div style={c.measurementTitle}>CRACK MEASUREMENTS</div>
+
+      {Array.from({ length: count }).map((_, index) => {
+        const measurement = measuredSegments[index]?.measurement;
+        const detection = detectedCracks[index];
+
+        if (!measurement && !detection) return null;
+
+        return (
+          <div key={index} style={c.crackBlock}>
+            <div style={c.crackLabel}>
+              CRACK {index + 1}
+            </div>
+
+            {measurement && (
+              <div style={c.measurementGrid}>
+                <Metric
+                  label="Length"
+                  value={
+                    measurement.length_mm != null
+                      ? `${fmt(measurement.length_mm)} mm`
+                      : `${fmt(measurement.length_px)} px`
+                  }
+                />
+
+                <Metric
+                  label="Avg Width"
+                  value={
+                    measurement.average_width_mm != null
+                      ? `${fmt(measurement.average_width_mm)} mm`
+                      : `${fmt(measurement.average_width_px)} px`
+                  }
+                />
+
+                <Metric
+                  label="Max Width"
+                  value={
+                    measurement.max_width_mm != null
+                      ? `${fmt(measurement.max_width_mm)} mm`
+                      : `${fmt(measurement.max_width_px)} px`
+                  }
+                />
+
+                <Metric
+                  label="Area"
+                  value={
+                    measurement.area_mm2 != null
+                      ? `${fmt(measurement.area_mm2)} mm²`
+                      : `${fmt(measurement.area_px)} px²`
+                  }
+                />
+              </div>
+            )}
+
+            {detection && (
+              <div style={c.measurementGrid}>
+                <Metric
+                  label="Distance"
+                  value={
+                    detection.distance_mm != null
+                      ? `${fmt(detection.distance_mm, 1)} mm`
+                      : "—"
+                  }
+                />
+
+                <Metric
+                  label="Angle"
+                  value={
+                    detection.angle_deg != null
+                      ? `${fmt(detection.angle_deg, 1)}°`
+                      : "—"
+                  }
+                />
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function Metric({ label, value }) {
+  return (
+    <div>
+      <div style={c.metricLabel}>{label}</div>
+      <div style={c.metricValue}>{value}</div>
     </div>
   );
 }
@@ -163,9 +308,9 @@ function Chip({ label, accent }) {
       fontSize: 10,
       padding: "3px 7px",
       borderRadius: 4,
-      background: accent ? "rgba(59,130,246,0.1)" : "#0a0e17",
-      border: `1px solid ${accent ? "rgba(59,130,246,0.3)" : "#1e2942"}`,
-      color: accent ? "#60a5fa" : "#4a5a7a",
+      background: accent ? "rgba(59,130,246,0.1)" : "var(--panel)",
+      border: `1px solid ${accent ? "rgba(59,130,246,0.3)" : "var(--border)"}`,
+      color: accent ? "#60a5fa" : "var(--text-muted)",
       letterSpacing: "0.04em",
     }}>
       {label}
@@ -219,9 +364,9 @@ export default function Queue() {
               onClick={() => { setFilter(f); setPage(1); }}
               style={{
                 ...p.filterBtn,
-                background: filter === f ? "#1d4ed8" : "#0d1321",
-                color: filter === f ? "#fff" : "#4a5a7a",
-                border: `1px solid ${filter === f ? "#1d4ed8" : "#1e2942"}`,
+                background: filter === f ? "#1d4ed8" : "var(--panel)",
+                color: filter === f ? "#fff" : "var(--text-muted)",
+                border: `1px solid ${filter === f ? "#1d4ed8" : "var(--border)"}`,
               }}
             >
               {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -235,10 +380,10 @@ export default function Queue() {
         <div style={p.loading}>Loading records…</div>
       ) : items.length === 0 ? (
         <div style={p.empty}>
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#1e2942" strokeWidth="1.5">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--border-strong)" strokeWidth="1.5">
             <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
           </svg>
-          <p style={{ color: "#3a4a6a", marginTop: 12, fontSize: 13 }}>
+          <p style={{ color: "var(--text-dim)", marginTop: 12, fontSize: 13 }}>
             {filter === "pending" ? "No pending verifications. All clear!" : "No records found."}
           </p>
         </div>
@@ -290,7 +435,7 @@ export default function Queue() {
 
 const c = {
   card: {
-    background: "#0d1321",
+    background: "var(--panel)",
     borderRadius: 10,
     overflow: "hidden",
     display: "flex",
@@ -299,7 +444,7 @@ const c = {
   imageWrap: {
     position: "relative",
     aspectRatio: "16/9",
-    background: "#080c14",
+    background: "var(--main-bg)",
     overflow: "hidden",
   },
   image: { width: "100%", height: "100%", objectFit: "contain", display: "block" },
@@ -323,9 +468,9 @@ const c = {
   },
   body: { padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10, flex: 1 },
   topRow: { display: "flex", justifyContent: "space-between", alignItems: "flex-start" },
-  camLabel: { fontSize: 14, fontWeight: 700, color: "#e2e8f0" },
-  camName: { fontWeight: 400, color: "#4a5a7a" },
-  timestamp: { fontSize: 11, color: "#3a4a6a", marginTop: 3 },
+  camLabel: { fontSize: 14, fontWeight: 700, color: "var(--text)" },
+  camName: { fontWeight: 400, color: "var(--text-muted)" },
+  timestamp: { fontSize: 11, color: "var(--text-dim)", marginTop: 3 },
   verdictBadge: {
     fontSize: 9,
     padding: "3px 8px",
@@ -345,14 +490,44 @@ const c = {
     flexShrink: 0,
   },
   detailRow: { display: "flex", gap: 6, flexWrap: "wrap" },
+  measurementPanel: {
+    background: "var(--main-bg)",
+    border: "1px solid var(--border)",
+    borderRadius: 6,
+    padding: "9px 10px",
+  },
+  measurementTitle: {
+    fontSize: 9,
+    color: "var(--text-muted)",
+    letterSpacing: "0.08em",
+    marginBottom: 8,
+    fontWeight: 700,
+  },
+  measurementGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+    gap: 8,
+    marginBottom: 8,
+  },
+  metricLabel: {
+    fontSize: 8,
+    color: "var(--text-dim)",
+    textTransform: "uppercase",
+    marginBottom: 3,
+  },
+  metricValue: {
+    fontSize: 10,
+    color: "var(--text-secondary)",
+    fontWeight: 600,
+  },
   comment: {
     fontSize: 11,
-    color: "#4a5a7a",
+    color: "var(--text-muted)",
     fontStyle: "italic",
-    background: "#080c14",
+    background: "var(--main-bg)",
     padding: "8px 10px",
     borderRadius: 4,
-    borderLeft: "2px solid #1e2942",
+    borderLeft: "2px solid var(--border)",
   },
   verifyBtn: {
     padding: "10px",
@@ -366,6 +541,18 @@ const c = {
     transition: "all 0.15s",
     marginTop: "auto",
   },
+    crackBlock: {
+    borderTop: "1px solid var(--border)",
+    paddingTop: 8,
+    marginTop: 8,
+  },
+  crackLabel: {
+    fontSize: 9,
+    color: "#60a5fa",
+    fontWeight: 700,
+    marginBottom: 7,
+    letterSpacing: "0.06em",
+  },
 };
 
 const p = {
@@ -378,8 +565,8 @@ const p = {
     flexWrap: "wrap",
     gap: 16,
   },
-  title: { fontSize: 22, fontWeight: 700, color: "#e2e8f0", margin: 0 },
-  sub: { fontSize: 11, color: "#3a4a6a", marginTop: 6 },
+  title: { fontSize: 22, fontWeight: 700, color: "var(--text)", margin: 0 },
+  sub: { fontSize: 11, color: "var(--text-dim)", marginTop: 6 },
   filters: { display: "flex", gap: 6 },
   filterBtn: {
     padding: "8px 14px",
@@ -396,7 +583,7 @@ const p = {
     gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
     gap: 16,
   },
-  loading: { color: "#3a4a6a", fontSize: 13, padding: "60px 0", textAlign: "center" },
+  loading: { color: "var(--text-dim)", fontSize: 13, padding: "60px 0", textAlign: "center" },
   empty: {
     display: "flex",
     flexDirection: "column",
@@ -411,14 +598,14 @@ const p = {
     marginTop: 32,
   },
   pageBtn: {
-    background: "#0d1321",
-    border: "1px solid #1e2942",
+    background: "var(--panel)",
+    border: "1px solid var(--border)",
     borderRadius: 6,
     padding: "8px 16px",
-    color: "#4a5a7a",
+    color: "var(--text-muted)",
     cursor: "pointer",
     fontFamily: "'DM Mono', monospace",
     fontSize: 12,
   },
-  pageInfo: { fontSize: 12, color: "#3a4a6a" },
+  pageInfo: { fontSize: 12, color: "var(--text-dim)" },
 };

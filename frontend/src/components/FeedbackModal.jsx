@@ -44,14 +44,23 @@ export default function FeedbackModal({ inference, onClose, onSubmitted }) {
 
   const handleSubmit = async () => {
     if (!selected) return;
+
     setLoading(true);
     setError("");
+
     try {
       if (isEdit) {
-        await feedbackAPI.update(inference.id, { verdict: selected, comment: comment || null });
+        await feedbackAPI.update(inference.id, {
+          verdict: selected,
+          comment: comment || null,
+        });
       } else {
-        await feedbackAPI.submit(inference.id, { verdict: selected, comment: comment || null });
+        await feedbackAPI.submit(inference.id, {
+          verdict: selected,
+          comment: comment || null,
+        });
       }
+
       onSubmitted?.();
       onClose();
     } catch (err) {
@@ -68,22 +77,43 @@ export default function FeedbackModal({ inference, onClose, onSubmitted }) {
         <div style={s.header}>
           <div>
             <div style={s.headerTitle}>Officer Verification</div>
-            <div style={s.headerSub}>Frame {inference.frame_id?.slice(0, 8)}…</div>
+            <div style={s.headerSub}>
+              Frame {inference.frame_id?.slice(0, 8)}…
+            </div>
           </div>
-          <button onClick={onClose} style={s.closeBtn}>✕</button>
+
+          <button onClick={onClose} style={s.closeBtn}>
+            ✕
+          </button>
         </div>
 
         {/* Inference metadata */}
         <div style={s.metaRow}>
-          <MetaItem label="Confidence" value={`${(inference.max_confidence * 100).toFixed(1)}%`} />
-          <MetaItem label="Detections" value={inference.num_detections} />
-          <MetaItem label="Camera" value={`#${inference.camera_id}`} />
-          <MetaItem label="Captured" value={new Date(inference.captured_at).toLocaleString()} />
+          <MetaItem
+            label="Confidence"
+            value={`${(inference.max_confidence * 100).toFixed(1)}%`}
+          />
+
+          <MetaItem
+            label="Detections"
+            value={inference.num_detections}
+          />
+
+          <MetaItem
+            label="Camera"
+            value={`#${inference.camera_id}`}
+          />
+
+          <MetaItem
+            label="Captured"
+            value={new Date(inference.captured_at).toLocaleString()}
+          />
         </div>
 
         {/* Verdict selection */}
         <div style={s.section}>
           <div style={s.sectionLabel}>SELECT VERDICT</div>
+
           <div style={s.verdictGrid}>
             {VERDICTS.map((v) => (
               <button
@@ -91,15 +121,40 @@ export default function FeedbackModal({ inference, onClose, onSubmitted }) {
                 onClick={() => setSelected(v.key)}
                 style={{
                   ...s.verdictBtn,
-                  background: selected === v.key ? v.bg : "#0a0e17",
-                  borderColor: selected === v.key ? v.color : "#1e2942",
+                  background:
+                    selected === v.key
+                      ? v.bg
+                      : "var(--panel)",
+                  borderColor:
+                    selected === v.key
+                      ? v.color
+                      : "var(--border)",
                 }}
               >
-                <div style={{ ...s.verdictIcon, color: v.color }}>{v.icon}</div>
-                <div style={{ ...s.verdictLabel, color: selected === v.key ? v.color : "#94a3b8" }}>
+                <div
+                  style={{
+                    ...s.verdictIcon,
+                    color: v.color,
+                  }}
+                >
+                  {v.icon}
+                </div>
+
+                <div
+                  style={{
+                    ...s.verdictLabel,
+                    color:
+                      selected === v.key
+                        ? v.color
+                        : "var(--text-secondary)",
+                  }}
+                >
                   {v.label}
                 </div>
-                <div style={s.verdictDesc}>{v.desc}</div>
+
+                <div style={s.verdictDesc}>
+                  {v.desc}
+                </div>
               </button>
             ))}
           </div>
@@ -107,7 +162,10 @@ export default function FeedbackModal({ inference, onClose, onSubmitted }) {
 
         {/* Comment */}
         <div style={s.section}>
-          <div style={s.sectionLabel}>COMMENT (OPTIONAL)</div>
+          <div style={s.sectionLabel}>
+            COMMENT (OPTIONAL)
+          </div>
+
           <textarea
             style={s.textarea}
             placeholder="Add notes, location details, severity assessment…"
@@ -117,21 +175,36 @@ export default function FeedbackModal({ inference, onClose, onSubmitted }) {
           />
         </div>
 
-        {error && <div style={s.error}>{error}</div>}
+        {error && (
+          <div style={s.error}>
+            {error}
+          </div>
+        )}
 
         {/* Actions */}
         <div style={s.actions}>
-          <button onClick={onClose} style={s.cancelBtn}>Cancel</button>
+          <button onClick={onClose} style={s.cancelBtn}>
+            Cancel
+          </button>
+
           <button
             onClick={handleSubmit}
             disabled={!selected || loading}
             style={{
               ...s.submitBtn,
-              opacity: !selected || loading ? 0.4 : 1,
-              cursor: !selected || loading ? "not-allowed" : "pointer",
+              opacity:
+                !selected || loading ? 0.4 : 1,
+              cursor:
+                !selected || loading
+                  ? "not-allowed"
+                  : "pointer",
             }}
           >
-            {loading ? "Submitting…" : isEdit ? "Update Verdict" : "Submit Verdict"}
+            {loading
+              ? "Submitting…"
+              : isEdit
+              ? "Update Verdict"
+              : "Submit Verdict"}
           </button>
         </div>
       </div>
@@ -142,10 +215,26 @@ export default function FeedbackModal({ inference, onClose, onSubmitted }) {
 function MetaItem({ label, value }) {
   return (
     <div style={{ flex: 1 }}>
-      <div style={{ fontSize: 9, color: "#3a4a6a", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 3 }}>
+      <div
+        style={{
+          fontSize: 9,
+          color: "var(--text-muted)",
+          letterSpacing: "0.1em",
+          textTransform: "uppercase",
+          marginBottom: 3,
+        }}
+      >
         {label}
       </div>
-      <div style={{ fontSize: 13, color: "#94a3b8" }}>{value}</div>
+
+      <div
+        style={{
+          fontSize: 13,
+          color: "var(--text-secondary)",
+        }}
+      >
+        {value}
+      </div>
     </div>
   );
 }
@@ -154,7 +243,7 @@ const s = {
   overlay: {
     position: "fixed",
     inset: 0,
-    background: "rgba(0,0,0,0.75)",
+    background: "rgba(0,0,0,0.55)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -162,45 +251,75 @@ const s = {
     backdropFilter: "blur(4px)",
     fontFamily: "'DM Mono', monospace",
   },
+
   modal: {
-    background: "#0d1321",
-    border: "1px solid #1e2942",
+    background: "var(--panel)",
+    border: "1px solid var(--border)",
     borderRadius: 12,
     width: "100%",
     maxWidth: 560,
     maxHeight: "90vh",
     overflowY: "auto",
-    boxShadow: "0 0 60px rgba(0,0,0,0.6)",
+    boxShadow: "0 0 60px rgba(0,0,0,0.25)",
   },
+
   header: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "flex-start",
     padding: "20px 24px 16px",
-    borderBottom: "1px solid #1e2942",
+    borderBottom: "1px solid var(--border)",
   },
-  headerTitle: { fontSize: 16, fontWeight: 700, color: "#e2e8f0" },
-  headerSub: { fontSize: 11, color: "#3a4a6a", marginTop: 3 },
+
+  headerTitle: {
+    fontSize: 16,
+    fontWeight: 700,
+    color: "var(--text)",
+  },
+
+  headerSub: {
+    fontSize: 11,
+    color: "var(--text-muted)",
+    marginTop: 3,
+  },
+
   closeBtn: {
-    background: "none",
-    border: "1px solid #1e2942",
+    background: "var(--panel)",
+    border: "1px solid var(--border-strong)",
     borderRadius: 4,
-    color: "#4a5a7a",
+    color: "var(--text-muted)",
     cursor: "pointer",
     padding: "4px 10px",
     fontSize: 14,
     fontFamily: "inherit",
   },
+
   metaRow: {
     display: "flex",
     gap: 0,
     padding: "16px 24px",
-    borderBottom: "1px solid #111827",
-    background: "#080c14",
+    borderBottom: "1px solid var(--border)",
+    background: "var(--main-bg)",
   },
-  section: { padding: "16px 24px" },
-  sectionLabel: { fontSize: 9, color: "#3a4a6a", letterSpacing: "0.15em", marginBottom: 10, fontWeight: 700 },
-  verdictGrid: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 },
+
+  section: {
+    padding: "16px 24px",
+  },
+
+  sectionLabel: {
+    fontSize: 9,
+    color: "var(--text-muted)",
+    letterSpacing: "0.15em",
+    marginBottom: 10,
+    fontWeight: 700,
+  },
+
+  verdictGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr 1fr",
+    gap: 8,
+  },
+
   verdictBtn: {
     border: "1px solid",
     borderRadius: 8,
@@ -210,22 +329,40 @@ const s = {
     transition: "all 0.15s",
     fontFamily: "'DM Mono', monospace",
   },
-  verdictIcon: { fontSize: 18, fontWeight: 700, marginBottom: 6 },
-  verdictLabel: { fontSize: 11, fontWeight: 700, letterSpacing: "0.04em", marginBottom: 4 },
-  verdictDesc: { fontSize: 10, color: "#3a4a6a", lineHeight: 1.4 },
+
+  verdictIcon: {
+    fontSize: 18,
+    fontWeight: 700,
+    marginBottom: 6,
+  },
+
+  verdictLabel: {
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: "0.04em",
+    marginBottom: 4,
+  },
+
+  verdictDesc: {
+    fontSize: 10,
+    color: "var(--text-muted)",
+    lineHeight: 1.4,
+  },
+
   textarea: {
     width: "100%",
-    background: "#080c14",
-    border: "1px solid #1e2942",
+    background: "var(--main-bg)",
+    border: "1px solid var(--border-strong)",
     borderRadius: 6,
     padding: "10px 12px",
     fontSize: 12,
-    color: "#e2e8f0",
+    color: "var(--text)",
     fontFamily: "'DM Mono', monospace",
     resize: "vertical",
     outline: "none",
     boxSizing: "border-box",
   },
+
   error: {
     margin: "0 24px 16px",
     padding: "10px 14px",
@@ -233,25 +370,28 @@ const s = {
     border: "1px solid rgba(239,68,68,0.3)",
     borderRadius: 6,
     fontSize: 12,
-    color: "#fca5a5",
+    color: "#ef4444",
   },
+
   actions: {
     display: "flex",
     justifyContent: "flex-end",
     gap: 10,
     padding: "16px 24px",
-    borderTop: "1px solid #1e2942",
+    borderTop: "1px solid var(--border)",
   },
+
   cancelBtn: {
-    background: "none",
-    border: "1px solid #1e2942",
+    background: "var(--panel)",
+    border: "1px solid var(--border-strong)",
     borderRadius: 6,
     padding: "10px 20px",
     fontSize: 12,
-    color: "#4a5a7a",
+    color: "var(--text-muted)",
     cursor: "pointer",
     fontFamily: "inherit",
   },
+
   submitBtn: {
     background: "#1d4ed8",
     border: "none",
