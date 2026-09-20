@@ -164,6 +164,11 @@ function InferenceCard({ item, highlighted, onVerify }) {
           )}
         </div>
 
+        <MeasurementPanel
+          segmentations={item.segmentations}
+          detections={item.detections}
+        />
+
         {item.feedback?.comment && (
           <div style={c.comment}>"{item.feedback.comment}"</div>
         )}
@@ -180,6 +185,96 @@ function InferenceCard({ item, highlighted, onVerify }) {
           {item.is_verified ? "Edit Verdict" : "Submit Verdict"}
         </button>
       </div>
+    </div>
+  );
+}
+
+
+function MeasurementPanel({ segmentations, detections }) {
+  const measured = (segmentations || [])
+    .map((seg) => seg.measurement)
+    .filter(Boolean);
+
+  const measurement = measured[0] || null;
+  const detection = (detections || [])[0] || null;
+
+  if (!measurement && !detection) return null;
+
+  const fmt = (value, digits = 2) =>
+    value == null || Number.isNaN(Number(value))
+      ? "—"
+      : Number(value).toFixed(digits);
+
+  return (
+    <div style={c.measurementPanel}>
+      <div style={c.measurementTitle}>CRACK MEASUREMENTS</div>
+
+      {measurement && (
+        <div style={c.measurementGrid}>
+          <Metric
+            label="Length"
+            value={
+              measurement.length_mm != null
+                ? `${fmt(measurement.length_mm)} mm`
+                : `${fmt(measurement.length_px)} px`
+            }
+          />
+          <Metric
+            label="Avg Width"
+            value={
+              measurement.average_width_mm != null
+                ? `${fmt(measurement.average_width_mm)} mm`
+                : `${fmt(measurement.average_width_px)} px`
+            }
+          />
+          <Metric
+            label="Max Width"
+            value={
+              measurement.max_width_mm != null
+                ? `${fmt(measurement.max_width_mm)} mm`
+                : `${fmt(measurement.max_width_px)} px`
+            }
+          />
+          <Metric
+            label="Area"
+            value={
+              measurement.area_mm2 != null
+                ? `${fmt(measurement.area_mm2)} mm²`
+                : `${fmt(measurement.area_px)} px²`
+            }
+          />
+        </div>
+      )}
+
+      {detection && (
+        <div style={c.measurementGrid}>
+          <Metric
+            label="Distance"
+            value={
+              detection.distance_mm != null
+                ? `${fmt(detection.distance_mm, 1)} mm`
+                : "—"
+            }
+          />
+          <Metric
+            label="Angle"
+            value={
+              detection.angle_deg != null
+                ? `${fmt(detection.angle_deg, 1)}°`
+                : "—"
+            }
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Metric({ label, value }) {
+  return (
+    <div>
+      <div style={c.metricLabel}>{label}</div>
+      <div style={c.metricValue}>{value}</div>
     </div>
   );
 }
@@ -372,6 +467,36 @@ const c = {
     flexShrink: 0,
   },
   detailRow: { display: "flex", gap: 6, flexWrap: "wrap" },
+  measurementPanel: {
+    background: "var(--main-bg)",
+    border: "1px solid var(--border)",
+    borderRadius: 6,
+    padding: "9px 10px",
+  },
+  measurementTitle: {
+    fontSize: 9,
+    color: "var(--text-muted)",
+    letterSpacing: "0.08em",
+    marginBottom: 8,
+    fontWeight: 700,
+  },
+  measurementGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+    gap: 8,
+    marginBottom: 8,
+  },
+  metricLabel: {
+    fontSize: 8,
+    color: "var(--text-dim)",
+    textTransform: "uppercase",
+    marginBottom: 3,
+  },
+  metricValue: {
+    fontSize: 10,
+    color: "var(--text-secondary)",
+    fontWeight: 600,
+  },
   comment: {
     fontSize: 11,
     color: "var(--text-muted)",

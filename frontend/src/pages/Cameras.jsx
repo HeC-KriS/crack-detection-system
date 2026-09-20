@@ -15,6 +15,7 @@ const BLANK_FORM = {
   pipeline_id: "",
   frame_interval_seconds: "",
   alert_threshold: "",
+  mm_per_pixel: "",
   is_active: true,
 };
 
@@ -78,6 +79,7 @@ export default function Cameras() {
       pipeline_id: cam.pipeline_id ?? "",
       frame_interval_seconds: cam.frame_interval_seconds ?? "",
       alert_threshold: cam.alert_threshold ?? "",
+      mm_per_pixel: cam.mm_per_pixel ?? "",
       is_active: cam.is_active,
     });
     setFormError("");
@@ -99,6 +101,9 @@ export default function Cameras() {
         : null,
       alert_threshold: form.alert_threshold
         ? parseFloat(form.alert_threshold)
+        : null,
+      mm_per_pixel: form.mm_per_pixel
+        ? parseFloat(form.mm_per_pixel)
         : null,
     };
 
@@ -308,6 +313,15 @@ export default function Cameras() {
                         />
 
                         <Param
+                          label="Scale"
+                          value={
+                            cam.mm_per_pixel != null
+                              ? `${Number(cam.mm_per_pixel).toFixed(4)} mm/px`
+                              : "Not calibrated"
+                          }
+                        />
+
+                        <Param
                           label="Last Seen"
                           value={
                             cam.last_seen_at
@@ -470,6 +484,18 @@ export default function Cameras() {
                   }
                 />
               </div>
+
+              <Field
+                label="Scale (mm per pixel)"
+                type="number"
+                value={form.mm_per_pixel}
+                placeholder="e.g. 0.25"
+                step="any"
+                min="0"
+                onChange={(v) =>
+                  setForm((f) => ({ ...f, mm_per_pixel: v }))
+                }
+              />
 
               <label style={modal.checkLabel}>
                 <input
@@ -741,7 +767,7 @@ const camCard = {
 
   paramRow: {
     display: "grid",
-    gridTemplateColumns: "1fr 1fr 1fr 1fr",
+    gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
     gap: 10,
   },
 

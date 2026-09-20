@@ -56,6 +56,7 @@ class CameraCreate(BaseModel):
     pipeline_id: int | None = None
     frame_interval_seconds: int | None = Field(None, ge=1, le=3600)
     alert_threshold: float | None = Field(None, ge=0.0, le=1.0)
+    mm_per_pixel: float | None = Field(None, gt=0)
     is_active: bool = True
 
 
@@ -65,6 +66,7 @@ class CameraUpdate(BaseModel):
     pipeline_id: int | None = None
     frame_interval_seconds: int | None = Field(None, ge=1, le=3600)
     alert_threshold: float | None = Field(None, ge=0.0, le=1.0)
+    mm_per_pixel: float | None = Field(None, gt=0)
     is_active: bool | None = None
 
 
@@ -76,6 +78,7 @@ class CameraOut(BaseModel):
     frame_interval_seconds: int | None
     alert_threshold: float | None
     status: str
+    mm_per_pixel: float | None
     is_active: bool
     last_seen_at: datetime | None
     created_at: datetime
@@ -89,12 +92,16 @@ class DetectionItem(BaseModel):
     class_name: str
     confidence: float
     bbox: list[float]  # [x1, y1, x2, y2] in pixel coords
+    angle_deg: float | None = None
+    distance_mm: float | None = None
+
 
 class SegmentationItem(BaseModel):
     class_name: str
     confidence: float
     polygon: list[list[float]]  # [[x, y], ...]
     area_px: float | None = None
+    measurement: dict[str, Any] | None = None
 
 
 # ── Inference Record ───────────────────────────────────────────────────────────

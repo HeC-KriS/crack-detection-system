@@ -6,7 +6,7 @@ from __future__ import annotations
 import enum
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Enum, Float,ForeignKey, Integer, String, func
+from sqlalchemy import Boolean, DateTime, Enum, Float, ForeignKey, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from typing import TYPE_CHECKING
@@ -36,6 +36,9 @@ class Camera(Base):
     frame_interval_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
     alert_threshold: Mapped[float | None] = mapped_column(Float, nullable=True)
 
+    # Calibration scale: physical millimetres represented by one image pixel.
+    # NULL means measurements are kept in pixel units only.
+    mm_per_pixel: Mapped[float | None] = mapped_column(Float, nullable=True)
     status: Mapped[CameraStatus] = mapped_column(
         Enum(CameraStatus), default=CameraStatus.OFFLINE, nullable=False
     )
