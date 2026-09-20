@@ -191,81 +191,104 @@ function InferenceCard({ item, highlighted, onVerify }) {
 
 
 function MeasurementPanel({ segmentations, detections }) {
-  const measured = (segmentations || [])
-    .map((seg) => seg.measurement)
-    .filter(Boolean);
+  const measuredSegments = segmentations || [];
+  const detectedCracks = detections || [];
 
-  const measurement = measured[0] || null;
-  const detection = (detections || [])[0] || null;
-
-  if (!measurement && !detection) return null;
+  if (measuredSegments.length === 0 && detectedCracks.length === 0) {
+    return null;
+  }
 
   const fmt = (value, digits = 2) =>
     value == null || Number.isNaN(Number(value))
       ? "—"
       : Number(value).toFixed(digits);
 
+  // Match each segmentation/measurement with the detection at the same index
+  const count = Math.max(
+    measuredSegments.length,
+    detectedCracks.length
+  );
+
   return (
     <div style={c.measurementPanel}>
       <div style={c.measurementTitle}>CRACK MEASUREMENTS</div>
 
-      {measurement && (
-        <div style={c.measurementGrid}>
-          <Metric
-            label="Length"
-            value={
-              measurement.length_mm != null
-                ? `${fmt(measurement.length_mm)} mm`
-                : `${fmt(measurement.length_px)} px`
-            }
-          />
-          <Metric
-            label="Avg Width"
-            value={
-              measurement.average_width_mm != null
-                ? `${fmt(measurement.average_width_mm)} mm`
-                : `${fmt(measurement.average_width_px)} px`
-            }
-          />
-          <Metric
-            label="Max Width"
-            value={
-              measurement.max_width_mm != null
-                ? `${fmt(measurement.max_width_mm)} mm`
-                : `${fmt(measurement.max_width_px)} px`
-            }
-          />
-          <Metric
-            label="Area"
-            value={
-              measurement.area_mm2 != null
-                ? `${fmt(measurement.area_mm2)} mm²`
-                : `${fmt(measurement.area_px)} px²`
-            }
-          />
-        </div>
-      )}
+      {Array.from({ length: count }).map((_, index) => {
+        const measurement = measuredSegments[index]?.measurement;
+        const detection = detectedCracks[index];
 
-      {detection && (
-        <div style={c.measurementGrid}>
-          <Metric
-            label="Distance"
-            value={
-              detection.distance_mm != null
-                ? `${fmt(detection.distance_mm, 1)} mm`
-                : "—"
-            }
-          />
-          <Metric
-            label="Angle"
-            value={
-              detection.angle_deg != null
-                ? `${fmt(detection.angle_deg, 1)}°`
-                : "—"
-            }
-          />
-        </div>
-      )}
+        if (!measurement && !detection) return null;
+
+        return (
+          <div key={index} style={c.crackBlock}>
+            <div style={c.crackLabel}>
+              CRACK {index + 1}
+            </div>
+
+            {measurement && (
+              <div style={c.measurementGrid}>
+                <Metric
+                  label="Length"
+                  value={
+                    measurement.length_mm != null
+                      ? `${fmt(measurement.length_mm)} mm`
+                      : `${fmt(measurement.length_px)} px`
+                  }
+                />
+
+                <Metric
+                  label="Avg Width"
+                  value={
+                    measurement.average_width_mm != null
+                      ? `${fmt(measurement.average_width_mm)} mm`
+                      : `${fmt(measurement.average_width_px)} px`
+                  }
+                />
+
+                <Metric
+                  label="Max Width"
+                  value={
+                    measurement.max_width_mm != null
+                      ? `${fmt(measurement.max_width_mm)} mm`
+                      : `${fmt(measurement.max_width_px)} px`
+                  }
+                />
+
+                <Metric
+                  label="Area"
+                  value={
+                    measurement.area_mm2 != null
+                      ? `${fmt(measurement.area_mm2)} mm²`
+                      : `${fmt(measurement.area_px)} px²`
+                  }
+                />
+              </div>
+            )}
+
+            {detection && (
+              <div style={c.measurementGrid}>
+                <Metric
+                  label="Distance"
+                  value={
+                    detection.distance_mm != null
+                      ? `${fmt(detection.distance_mm, 1)} mm`
+                      : "—"
+                  }
+                />
+
+                <Metric
+                  label="Angle"
+                  value={
+                    detection.angle_deg != null
+                      ? `${fmt(detection.angle_deg, 1)}°`
+                      : "—"
+                  }
+                />
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -517,6 +540,18 @@ const c = {
     fontFamily: "'DM Mono', monospace",
     transition: "all 0.15s",
     marginTop: "auto",
+  },
+    crackBlock: {
+    borderTop: "1px solid var(--border)",
+    paddingTop: 8,
+    marginTop: 8,
+  },
+  crackLabel: {
+    fontSize: 9,
+    color: "#60a5fa",
+    fontWeight: 700,
+    marginBottom: 7,
+    letterSpacing: "0.06em",
   },
 };
 
