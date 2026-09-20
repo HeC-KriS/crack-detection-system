@@ -1,0 +1,86 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+ENV/
+
+# Local environment files
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
+# Backend runtime artifacts
+backend/venv/
+backend/.venv/
+backend/__pycache__/
+backend/.pytest_cache/
+backend/*.db
+backend/*.sqlite3
+backend/best.pt
+backend/data/flagged/**
+!backend/data/flagged/.gitkeep
+
+# Frontend / Node
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.vite/
+frontend/.cache/
+frontend/.eslintcache
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Logs and temp files
+*.log
+*.tmp
+*.temp
+coverage/
+tmp/
+temp/
+
+# Editor / OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.env.example
+# Python virtual environments & caches
+backend/venv/
+**/__pycache__/
+*.pyc
+
+# Node dependencies & build artifacts
+frontend/node_modules/
+frontend/dist/
+
+# Database files
+backend/*.db
+backend/*.sqlite3
+
+# Model weights (or track with Git LFS if needed)
+backend/*.pt
+backend/*.pth
+backend/*.onnx
+
+# Local environment secrets (keep .env.example tracked)
+backend/.env
+frontend/.env
