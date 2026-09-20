@@ -12,6 +12,12 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from app.models.camera import Camera
+    from app.models.feedback import OfficerFeedback
+    from app.models.notification import NotificationLog
+
 from app.database import get_db
 from app.models.camera import Camera
 from app.models.feedback import OfficerFeedback

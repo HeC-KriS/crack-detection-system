@@ -10,7 +10,7 @@ from app.models.user import User, UserRole
 from app.models.pipeline import Pipeline
 
 __all__ = [
-    "Pipeline,"
+    "Pipeline",
     "Camera",
     "CameraStatus",
     "InferenceRecord",

@@ -9,6 +9,11 @@ from datetime import datetime
 from sqlalchemy import Boolean, DateTime, Enum, Float,ForeignKey, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from app.models.inference import InferenceRecord
+    from app.models.pipeline import Pipeline
+
 from app.database import Base
 
 
