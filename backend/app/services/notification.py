@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from app.utils.time import now_ist
 import smtplib
 import ssl
 from datetime import datetime, timezone, timedelta
@@ -18,6 +19,7 @@ from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import Any
+
 
 from app.config import get_settings
 from app.services.inference import InferenceResult

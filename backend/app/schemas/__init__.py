@@ -57,6 +57,7 @@ class CameraCreate(BaseModel):
     frame_interval_seconds: int | None = Field(None, ge=1, le=3600)
     alert_threshold: float | None = Field(None, ge=0.0, le=1.0)
     mm_per_pixel: float | None = Field(None, gt=0)
+    focal_length_px: float | None = Field(None, gt=0)
     is_active: bool = True
 
 
@@ -67,6 +68,7 @@ class CameraUpdate(BaseModel):
     frame_interval_seconds: int | None = Field(None, ge=1, le=3600)
     alert_threshold: float | None = Field(None, ge=0.0, le=1.0)
     mm_per_pixel: float | None = Field(None, gt=0)
+    focal_length_px: float | None = Field(None, gt=0)
     is_active: bool | None = None
 
 
@@ -79,6 +81,7 @@ class CameraOut(BaseModel):
     alert_threshold: float | None
     status: str
     mm_per_pixel: float | None
+    focal_length_px: float | None
     is_active: bool
     last_seen_at: datetime | None
     created_at: datetime

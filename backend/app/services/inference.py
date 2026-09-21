@@ -173,7 +173,6 @@ class YOLOService:
 
                 box_height_px = max(1.0, y2 - y1)
                 box_center_x = (x1 + x2) / 2
-
                 # Angle from image centre
                 angle_deg = math.degrees(
                     math.atan(

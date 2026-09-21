@@ -39,6 +39,10 @@ class Camera(Base):
     # Calibration scale: physical millimetres represented by one image pixel.
     # NULL means measurements are kept in pixel units only.
     mm_per_pixel: Mapped[float | None] = mapped_column(Float, nullable=True)
+    focal_length_px: Mapped[float | None] = mapped_column(
+        Float,
+        nullable=True,
+    )
     status: Mapped[CameraStatus] = mapped_column(
         Enum(CameraStatus), default=CameraStatus.OFFLINE, nullable=False
     )

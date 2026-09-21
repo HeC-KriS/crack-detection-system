@@ -44,6 +44,7 @@ class CameraWorker:
         alert_threshold: float,
         mm_per_pixel: float | None,
         pipeline: "ProcessingPipeline",
+        focal_length_px: float = 1000.0,
         on_status_change: "asyncio.Coroutine | None" = None,
     ) -> None:
         self.camera_id = camera_id
@@ -52,6 +53,7 @@ class CameraWorker:
         self.frame_interval = frame_interval
         self.alert_threshold = alert_threshold
         self.mm_per_pixel = mm_per_pixel
+        self.focal_length_px = focal_length_px or 1000.0
         self.pipeline = pipeline
         self.on_status_change = on_status_change
 
@@ -150,6 +152,7 @@ class CameraWorker:
                 captured_at=captured_at,
                 alert_threshold=self.alert_threshold,
                 mm_per_pixel=self.mm_per_pixel,
+                focal_length_px=self.focal_length_px,
             )
 
             await self.pipeline.enqueue(frame_bgr, meta)
@@ -209,6 +212,7 @@ class CaptureManager:
         frame_interval: int,
         alert_threshold: float,
         mm_per_pixel: float | None = None,
+        focal_length_px: float = 1000.0,
         on_status_change=None,
     ) -> None:
         if camera_id in self._workers:
@@ -221,6 +225,7 @@ class CaptureManager:
             frame_interval=frame_interval,
             alert_threshold=alert_threshold,
             mm_per_pixel=mm_per_pixel,
+            focal_length_px=focal_length_px,
             pipeline=self.pipeline,
             on_status_change=on_status_change,
         )
