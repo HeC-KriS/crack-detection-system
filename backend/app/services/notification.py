@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from app.utils.time import now_ist
 import smtplib
 import ssl
 from datetime import datetime, timezone, timedelta
@@ -18,6 +19,7 @@ from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import Any
+
 
 from app.config import get_settings
 from app.services.inference import InferenceResult
@@ -38,10 +40,10 @@ class CooldownTracker:
         last = self._last_sent.get(camera_id)
         if last is None:
             return False
-        return datetime.now(timezone.utc) - last < self._cooldown
+        return now_ist() - last < self._cooldown
 
     def mark_sent(self, camera_id: int) -> None:
-        self._last_sent[camera_id] = datetime.now(timezone.utc)
+        self._last_sent[camera_id] = now_ist()
 
 
 # Module-level singleton cooldown tracker

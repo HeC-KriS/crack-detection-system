@@ -5,8 +5,10 @@ from __future__ import annotations
 
 import enum
 from datetime import datetime
+from app.database import Base
+from app.utils.time import now_ist
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text, func
+from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from typing import TYPE_CHECKING
@@ -43,7 +45,7 @@ class OfficerFeedback(Base):
     )
 
     submitted_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
+        DateTime(timezone=True), default=now_ist, nullable=False
     )
 
     # Relationship

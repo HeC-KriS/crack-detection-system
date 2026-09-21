@@ -78,6 +78,7 @@ async def lifespan(app: FastAPI):
                 camera_id=cam.id,
                 camera_name=cam.name,
                 stream_url=cam.stream_url,
+                mm_per_pixel=cam.mm_per_pixel,
                 frame_interval=_effective_interval(cam),
                 alert_threshold=_effective_threshold(cam),
                 on_status_change=_make_status_updater(app),

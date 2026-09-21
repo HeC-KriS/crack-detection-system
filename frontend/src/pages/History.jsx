@@ -1,6 +1,7 @@
 // pages/History.jsx — All reviewed inference records with filtering
 import { useCallback, useEffect, useState } from "react";
 import { inferencesAPI, statsAPI } from "../api/client";
+import { formatIST } from "../utils/date";
 
 const VERDICT_MAP = {
   true_positive: { label: "True Positive", color: "#ef4444" },
@@ -13,7 +14,7 @@ function TableRow({ item }) {
 
   return (
     <tr style={t.row}>
-      <td style={t.cell}>{new Date(item.captured_at).toLocaleString()}</td>
+      <td style={t.cell}>{formatIST(item.captured_at)}</td>
       <td style={t.cell}>CAM {item.camera_id}{item.camera_name ? ` · ${item.camera_name}` : ""}</td>
       <td style={t.cell}>
         <span style={{

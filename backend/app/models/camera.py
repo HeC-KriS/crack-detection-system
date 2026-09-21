@@ -30,7 +30,12 @@ class Camera(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     stream_url: Mapped[str] = mapped_column(String(512), nullable=False)
-    pipeline_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("pipelines.id", ondelete="SET NULL"), nullable=True, index=True,)
+    pipeline_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("pipelines.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
 
     # Per-camera overrides (fallback to global settings if NULL)
     frame_interval_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
@@ -39,6 +44,10 @@ class Camera(Base):
     # Calibration scale: physical millimetres represented by one image pixel.
     # NULL means measurements are kept in pixel units only.
     mm_per_pixel: Mapped[float | None] = mapped_column(Float, nullable=True)
+    focal_length_px: Mapped[float | None] = mapped_column(
+        Float,
+        nullable=True,
+    )
     status: Mapped[CameraStatus] = mapped_column(
         Enum(CameraStatus), default=CameraStatus.OFFLINE, nullable=False
     )

@@ -57,6 +57,7 @@ class CameraCreate(BaseModel):
     frame_interval_seconds: int | None = Field(None, ge=1, le=3600)
     alert_threshold: float | None = Field(None, ge=0.0, le=1.0)
     mm_per_pixel: float | None = Field(None, gt=0)
+    focal_length_px: float | None = Field(None, gt=0)
     is_active: bool = True
 
 
@@ -67,6 +68,7 @@ class CameraUpdate(BaseModel):
     frame_interval_seconds: int | None = Field(None, ge=1, le=3600)
     alert_threshold: float | None = Field(None, ge=0.0, le=1.0)
     mm_per_pixel: float | None = Field(None, gt=0)
+    focal_length_px: float | None = Field(None, gt=0)
     is_active: bool | None = None
 
 
@@ -79,12 +81,15 @@ class CameraOut(BaseModel):
     alert_threshold: float | None
     status: str
     mm_per_pixel: float | None
+    focal_length_px: float | None
     is_active: bool
     last_seen_at: datetime | None
     created_at: datetime
 
     model_config = {"from_attributes": True}
-
+    
+class ScaleUpdate(BaseModel):
+    mm_per_pixel: float = Field(..., gt=0)
 
 # ── Detection / Segmentation ───────────────────────────────────────────────────
 
@@ -96,12 +101,21 @@ class DetectionItem(BaseModel):
     distance_mm: float | None = None
 
 
+class MeasurementItem(BaseModel):
+    area_px:float
+    length_px:float
+    average_width_px:float
+    max_width_px:float
+    area_mm2: float | None = None
+    length_mm: float | None = None
+    average_width_mm: float | None = None
+    max_width_mm: float | None = None
+
 class SegmentationItem(BaseModel):
     class_name: str
     confidence: float
     polygon: list[list[float]]  # [[x, y], ...]
-    area_px: float | None = None
-    measurement: dict[str, Any] | None = None
+    measurement: MeasurementItem | None = None
 
 
 # ── Inference Record ───────────────────────────────────────────────────────────

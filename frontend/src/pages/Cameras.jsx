@@ -1,6 +1,7 @@
 // pages/Cameras.jsx — Camera management (list, add, edit, restart)
 import { useEffect, useState } from "react";
 import { camerasAPI, pipelinesAPI } from "../api/client";
+import { formatIST } from "../utils/date";
 
 const STATUS_STYLE = {
   online: { color: "#10b981", dot: "#10b981", label: "ONLINE" },
@@ -16,6 +17,7 @@ const BLANK_FORM = {
   frame_interval_seconds: "",
   alert_threshold: "",
   mm_per_pixel: "",
+  focal_length_px: "",
   is_active: true,
 };
 
@@ -80,6 +82,7 @@ export default function Cameras() {
       frame_interval_seconds: cam.frame_interval_seconds ?? "",
       alert_threshold: cam.alert_threshold ?? "",
       mm_per_pixel: cam.mm_per_pixel ?? "",
+      focal_length_px: cam.focal_length_px ?? "",
       is_active: cam.is_active,
     });
     setFormError("");
@@ -104,6 +107,9 @@ export default function Cameras() {
         : null,
       mm_per_pixel: form.mm_per_pixel
         ? parseFloat(form.mm_per_pixel)
+        : null,
+      focal_length_px: form.focal_length_px
+        ? parseFloat(form.focal_length_px)
         : null,
     };
 
@@ -325,10 +331,8 @@ export default function Cameras() {
                           label="Last Seen"
                           value={
                             cam.last_seen_at
-                              ? new Date(
-                                  cam.last_seen_at
-                                ).toLocaleTimeString()
-                              : "Never"
+                              ? formatIST(cam.last_seen_at)
+                              : "—"
                           }
                         />
                       </div>
@@ -494,6 +498,18 @@ export default function Cameras() {
                 min="0"
                 onChange={(v) =>
                   setForm((f) => ({ ...f, mm_per_pixel: v }))
+                }
+              />
+
+              <Field
+                label="Focal Length (px)"
+                type="number"
+                value={form.focal_length_px}
+                placeholder="Default: 1000"
+                step="any"
+                min="1"
+                onChange={(v) =>
+                  setForm((f) => ({ ...f, focal_length_px: v }))
                 }
               />
 

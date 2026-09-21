@@ -3,6 +3,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import client, { inferencesAPI } from "../api/client";
 import FeedbackModal from "../components/FeedbackModal";
+import { formatIST } from "../utils/date";
+import CalibrateModal from "../components/Calibrate";
 
 const VERDICT_STYLES = {
   true_positive: { color: "#ef4444", bg: "rgba(239,68,68,0.1)", label: "TRUE POSITIVE" },
@@ -56,10 +58,12 @@ function SegmentationOverlay({ segmentations, imageRef }) {
   );
 }
 
-function InferenceCard({ item, highlighted, onVerify }) {
+function InferenceCard({ item, highlighted, onVerify, onRefresh }) {
   const imageRef = useRef(null);
   const [imgError, setImgError] = useState(false);
   const [imageSrc, setImageSrc] = useState(null);
+  const [showCalibrate, setShowCalibrate] = useState(false);
+
 
   useEffect(() => {
     let objectUrl;
@@ -145,7 +149,7 @@ function InferenceCard({ item, highlighted, onVerify }) {
               CAM {item.camera_id}
               {item.camera_name && <span style={c.camName}> · {item.camera_name}</span>}
             </div>
-            <div style={c.timestamp}>{new Date(item.captured_at).toLocaleString()}</div>
+            <div style={c.timestamp}>{formatIST(item.captured_at)}</div>
           </div>
           {verdict ? (
             <div style={{ ...c.verdictBadge, color: verdict.color, background: verdict.bg }}>
@@ -163,6 +167,23 @@ function InferenceCard({ item, highlighted, onVerify }) {
             <Chip label={`${item.inference_latency_ms.toFixed(0)}ms`} />
           )}
         </div>
+
+         {imageSrc && item.segmentations?.some((sg) => sg.measurement) && (
+          <button onClick={() => setShowCalibrate(true)} style={c.scaleBtn}>
+            {item.segmentations.some((sg) => sg.measurement?.length_mm != null)
+              ? "Adjust scale"
+              : "Set scale"}
+          </button>
+        )}
+
+        {showCalibrate && (
+          <CalibrateModal
+            inferenceId={item.id}
+            imageSrc={imageSrc}
+            onClose={() => setShowCalibrate(false)}
+            onSaved={onRefresh}
+          />
+        )}
 
         <MeasurementPanel
           segmentations={item.segmentations}
@@ -318,6 +339,17 @@ function Chip({ label, accent }) {
   );
 }
 
+function MeasurementValue({ label, value,sub }) {
+  return (
+    <div style={c.measurementValue}>
+      <div style={c.measurementLabel}>{label}</div>
+      <div style={c.measurementNumber}>{value}</div>
+      {sub && <div style={c.measurementSub}>{sub}</div>}
+    </div>
+  );
+}
+
+
 export default function Queue() {
   const [searchParams] = useSearchParams();
   const highlight = searchParams.get("highlight");
@@ -395,6 +427,7 @@ export default function Queue() {
               item={item}
               highlighted={highlight === item.frame_id}
               onVerify={setSelected}
+              onRefresh={fetchItems}
             />
           ))}
         </div>
@@ -465,6 +498,72 @@ const c = {
     fontWeight: 800,
     color: "#fff",
     letterSpacing: "0.02em",
+  },
+  measurements: {
+  background: "#080c14",
+  border: "1px solid #1e2942",
+  borderRadius: 6,
+  padding: "10px 12px",
+  },
+
+  measurementHeader: {
+   fontSize: 9,
+   fontWeight: 700,
+   color: "#4a5a7a",
+   letterSpacing: "0.08em",
+   marginBottom: 8,
+  },
+
+  measurementBlock: {
+    borderTop: "1px solid #151e30",
+    paddingTop: 8,
+  },
+
+  crackLabel: {
+    fontSize: 9,
+    color: "#60a5fa",
+    fontWeight: 700,
+    marginBottom: 7,
+    letterSpacing: "0.06em",
+  },
+
+  measurementGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(2, 1fr)",
+    gap: 8,
+  },
+
+  measurementValue: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 2,
+  },
+
+  measurementLabel: {
+    fontSize: 9,
+    color: "#3a4a6a",
+    textTransform: "uppercase",
+  },
+
+  measurementNumber: {
+    fontSize: 12,
+    color: "#cbd5e1",
+    fontWeight: 600,
+  },
+  measurementSub: {
+    fontSize: 9,
+    color: "#3a4a6a",
+  },
+  scaleBtn: {
+
+    background: "#080c14",
+    border: "1px solid #1e3a5c",
+    borderRadius: 6,
+    padding: "8px",
+    fontSize: 11,
+    color: "#60a5fa",
+    cursor: "pointer",
+    fontFamily: "'DM Mono', monospace",
   },
   body: { padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10, flex: 1 },
   topRow: { display: "flex", justifyContent: "space-between", alignItems: "flex-start" },

@@ -57,6 +57,7 @@ async def create_camera(
             frame_interval=_effective_interval(cam),
             alert_threshold=_effective_threshold(cam),
             mm_per_pixel=cam.mm_per_pixel,
+            focal_length_px=cam.focal_length_px,
             on_status_change=_make_status_updater(request.app),
         )
 
@@ -96,8 +97,14 @@ async def update_camera(
 
     # Restart worker if stream settings changed
     mgr = request.app.state.capture_manager
-    if any(k in update_data for k in ("stream_url", "frame_interval_seconds",
-                                       "alert_threshold", "mm_per_pixel", "is_active")):
+    if any(k in update_data for k in (
+        "stream_url",
+        "frame_interval_seconds",
+        "alert_threshold",
+        "mm_per_pixel",
+        "focal_length_px",
+        "is_active",
+    )):
         await mgr.stop_camera(camera_id)
         if cam.is_active:
             await mgr.start_camera(
@@ -106,6 +113,8 @@ async def update_camera(
                 stream_url=cam.stream_url,
                 frame_interval=_effective_interval(cam),
                 alert_threshold=_effective_threshold(cam),
+                mm_per_pixel=cam.mm_per_pixel,
+                focal_length_px=cam.focal_length_px,
                 on_status_change=_make_status_updater(request.app),
             )
 
@@ -147,6 +156,7 @@ async def restart_camera(
             frame_interval=_effective_interval(cam),
             alert_threshold=_effective_threshold(cam),
             mm_per_pixel=cam.mm_per_pixel,
+            focal_length_px=cam.focal_length_px,
             on_status_change=_make_status_updater(request.app),
         )
     return cam
@@ -156,8 +166,8 @@ def _make_status_updater(app):
     """Returns an async callback that updates camera status in DB."""
     async def _update(camera_id: int, status_str: str) -> None:
         from app.database import AsyncSessionLocal
-        from datetime import datetime, timezone
-
+        from datetime import datetime
+        from app.utils.time import now_ist
         status_map = {
             "online": CameraStatus.ONLINE,
             "offline": CameraStatus.OFFLINE,
@@ -170,7 +180,7 @@ def _make_status_updater(app):
             if cam:
                 cam.status = new_status
                 if new_status == CameraStatus.ONLINE:
-                    cam.last_seen_at = datetime.now(timezone.utc)
+                    cam.last_seen_at = now_ist()
                 await session.commit()
 
     return _update

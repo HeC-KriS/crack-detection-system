@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.models.pipeline import Pipeline
 from app.schemas import PipelineCreate, PipelineOut, PipelineUpdate
-from app.utils.auth import require_admin
+from app.utils.auth import require_admin, get_current_user
 
 router = APIRouter(prefix="/pipelines", tags=["pipelines"])
 
@@ -18,7 +18,7 @@ router = APIRouter(prefix="/pipelines", tags=["pipelines"])
 @router.get("", response_model=list[PipelineOut])
 async def list_pipelines(
     db: AsyncSession = Depends(get_db),
-    _user=Depends(require_admin),
+    _user=Depends(get_current_user),
 ):
     result = await db.execute(
         select(Pipeline).order_by(Pipeline.id)
@@ -30,7 +30,7 @@ async def list_pipelines(
 async def get_pipeline(
     pipeline_id: int,
     db: AsyncSession = Depends(get_db),
-    _user=Depends(require_admin),
+    _user=Depends(get_current_user),
 ):
     pipeline = await db.get(Pipeline, pipeline_id)
 

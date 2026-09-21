@@ -5,6 +5,7 @@ Loads best.pt once at process startup.
 Runs both detection and segmentation on each frame.
 Returns a structured InferenceResult with annotated image bytes.
 """
+
 from __future__ import annotations
 
 import json
@@ -14,12 +15,15 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import cv2
 import numpy as np
-
 from app.config import get_settings
-from app.services.Crack_Measurement import measure_crack
+from app.services.Crack_Measurement import (
+    CrackMeasurement,
+    measure_crack,
+)
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -30,8 +34,17 @@ class DetectionBox:
     class_name: str
     confidence: float
     bbox: list[float]  # [x1, y1, x2, y2]
-    angle_deg: float | None = None
-    distance_mm: float | None = None
+    # ── NEW INFERENCE METRICS ──
+    angle_deg: float = 0.0
+    distance_mm: float = 0.0
+
+
+@dataclass
+class SegmentationResult:
+    class_name: str
+    confidence: float
+    polygon: list[list[float]]  # [[x, y], ...]
+    measurement: CrackMeasurement | None = None
 
 
 @dataclass
@@ -40,23 +53,9 @@ class FrameMeta:
     camera_id: int
     captured_at: datetime
     alert_threshold: float
-
-    # Camera calibration
-    mm_per_pixel: float | None = None
-
-    # Distance/angle assumptions
+    mm_per_pixel: float | None = None  # ── NEW CAMERA HARDWARE SPECS ──
     focal_length_px: float = 1000.0
     known_crack_height_mm: float = 100.0
-
-
-@dataclass
-class SegmentationResult:
-    class_name: str
-    confidence: float
-    polygon: list[list[float]]
-    area_px: float
-    measurement: dict | None = None
-
 
 @dataclass
 class InferenceResult:
@@ -77,7 +76,7 @@ class YOLOService:
     Thread-safe for concurrent reads.
     """
 
-    _instance: "YOLOService | None" = None
+    _instance: YOLOService | None = None
 
     def __init__(self) -> None:
         self._model = None
@@ -85,7 +84,7 @@ class YOLOService:
         self._device = settings.INFERENCE_DEVICE
 
     @classmethod
-    def get(cls) -> "YOLOService":
+    def get(cls) -> YOLOService:
         if cls._instance is None:
             cls._instance = cls()
         return cls._instance
@@ -136,6 +135,7 @@ class YOLOService:
                 device=self._device,
                 verbose=False,
                 conf=0.25,
+                retina_masks=True,
             )
         except Exception as exc:
             logger.exception(
@@ -152,18 +152,18 @@ class YOLOService:
             )
 
         latency_ms = (time.perf_counter() - t0) * 1000
-
         result = results[0]
         class_names: dict[int, str] = result.names
 
         detections: list[DetectionBox] = []
         segmentations: list[SegmentationResult] = []
 
-        # Image centre used for angle calculation
-        image_center_x = frame_bgr.shape[1] / 2
+        # ── Camera Geometry Setup ───────────────────────────────────────────
+        img_center_x = frame_bgr.shape[1] / 2.0
+        focal_length_px = getattr(meta, "focal_length_px", 1000.0)
+        known_real_height_mm = getattr(meta, "known_crack_height_mm", 100.0)
 
-        # ── Bounding boxes ──────────────────────────────────────────────────
-
+        # ── Bounding boxes & Camera Math ────────────────────────────────────
         if result.boxes is not None:
             for box in result.boxes:
                 cls_id = int(box.cls[0].item())
@@ -171,34 +171,29 @@ class YOLOService:
 
                 x1, y1, x2, y2 = box.xyxy[0].tolist()
 
-                box_height_px = max(1.0, y2 - y1)
-                box_center_x = (x1 + x2) / 2
+                # Angle and Distance Estimation calculations
+                box_center_x = (x1 + x2) / 2.0
+                box_height_px = y2 - y1
 
-                # Angle from image centre
-                angle_deg = math.degrees(
-                    math.atan(
-                        (box_center_x - image_center_x)
-                        / meta.focal_length_px
-                    )
-                )
+                # Angle: arctan(pixel_offset / focal_length)
+                pixel_offset = box_center_x - img_center_x
+                angle_rad = math.atan(pixel_offset / focal_length_px)
+                angle_deg = math.degrees(angle_rad)
 
-                # Distance using known physical crack height
+                # Distance: (real_height * focal_length) / pixel_height
                 distance_mm = (
-                    meta.known_crack_height_mm
-                    * meta.focal_length_px
-                    / box_height_px
+                    (known_real_height_mm * focal_length_px) / box_height_px
+                    if box_height_px > 0
+                    else 0.0
                 )
 
                 detections.append(
                     DetectionBox(
-                        class_name=class_names.get(
-                            cls_id,
-                            str(cls_id),
-                        ),
+                        class_name=class_names.get(cls_id, str(cls_id)),
                         confidence=conf,
                         bbox=[x1, y1, x2, y2],
-                        angle_deg=angle_deg,
-                        distance_mm=distance_mm,
+                        angle_deg=round(angle_deg, 2),
+                        distance_mm=round(distance_mm, 2),
                     )
                 )
 
@@ -208,89 +203,47 @@ class YOLOService:
             for i, mask in enumerate(result.masks):
                 cls_id = (
                     int(result.boxes.cls[i].item())
-                    if result.boxes is not None
+                    if result.boxes and i < len(result.boxes.cls)
                     else 0
                 )
-
                 conf = (
                     float(result.boxes.conf[i].item())
-                    if result.boxes is not None
+                    if result.boxes and i < len(result.boxes.conf)
                     else 0.0
                 )
+                polygon = mask.xy[0].tolist() if len(mask.xy) > 0 else []
 
-                # Polygon in pixel coordinates
-                polygon = (
-                    mask.xy[0].tolist()
-                    if len(mask.xy) > 0
-                    else []
-                )
+                mask_arr = mask.data[0].cpu().numpy()
+                binary_mask = np.where(mask_arr > 0.5, 255, 0).astype(np.uint8)
 
-                binary_mask = mask.data[0].cpu().numpy()
-
-                area = float(np.sum(binary_mask))
-
-                # ── Crack measurement ──────────────────────────────────────
-                measurement_data = None
-
-                try:
-                    measurement = measure_crack(
-                        binary_mask,
-                        meta.mm_per_pixel,
-                    )
-
-                    measurement_data = {
-                        "area_px": measurement.area_px,
-                        "length_px": measurement.length_px,
-                        "average_width_px": measurement.average_width_px,
-                        "max_width_px": measurement.max_width_px,
-                        "area_mm2": measurement.area_mm2,
-                        "length_mm": measurement.length_mm,
-                        "average_width_mm": measurement.average_width_mm,
-                        "max_width_mm": measurement.max_width_mm,
-                    }
-
-                except Exception as exc:
-                    logger.exception(
-                        "Crack measurement failed for frame %s: %s",
-                        meta.frame_id,
-                        exc,
-                    )
+                measurement = None
+                if conf >= meta.alert_threshold:
+                    try:
+                        measurement = measure_crack(binary_mask, meta.mm_per_pixel)
+                    except Exception:
+                        logger.exception(
+                            "Crack measurement failed for frame %s", meta.frame_id
+                        )
 
                 segmentations.append(
                     SegmentationResult(
-                        class_name=class_names.get(
-                            cls_id,
-                            str(cls_id),
-                        ),
+                        class_name=class_names.get(cls_id, str(cls_id)),
                         confidence=conf,
                         polygon=polygon,
-                        area_px=area,
-                        measurement=measurement_data,
+                        measurement=measurement,
                     )
                 )
 
         # ── Threshold filter ────────────────────────────────────────────────
-
         filtered_detections = [
-            d
-            for d in detections
-            if d.confidence >= meta.alert_threshold
+            d for d in detections if d.confidence >= meta.alert_threshold
         ]
-
         filtered_segments = [
-            s
-            for s in segmentations
-            if s.confidence >= meta.alert_threshold
+            s for s in segmentations if s.confidence >= meta.alert_threshold
         ]
 
-        max_confidence = max(
-            (d.confidence for d in filtered_detections),
-            default=0.0,
-        )
-
-        crack_detected = len(filtered_detections) > 0
-
-        # ── Annotate image ──────────────────────────────────────────────────
+        max_confidence = max((d.confidence for d in filtered_detections), default=0.0)
+        crack_detected = len(filtered_detections) > 0 or len(filtered_segments) > 0
 
         annotated_bytes: bytes | None = None
 
@@ -313,7 +266,9 @@ class YOLOService:
             inference_latency_ms=round(latency_ms, 2),
         )
 
-    # ── Annotation ───────────────────────────────────────────────────────────
+
+# ── Annotation ─────────────────────────────────────────────────────────────
+
 
     def _annotate(
         self,
@@ -322,27 +277,22 @@ class YOLOService:
         segmentations: list[SegmentationResult],
         meta: FrameMeta,
     ) -> bytes:
-        """Draw bounding boxes, segmentation overlays, and metadata."""
+        """Draw bounding boxes, segmentation overlays, measurements and metadata."""
         img = frame_bgr.copy()
         overlay = img.copy()
 
         CRACK_BGR = (0, 0, 220)
         MASK_BGR = (0, 80, 255)
+        TEXT_BGR = (255, 255, 255)
         ALPHA = 0.35
 
+        # ---------------------------------------------------------
         # Draw segmentation masks first
+        # ---------------------------------------------------------
         for seg in segmentations:
-            pts = np.array(
-                seg.polygon,
-                dtype=np.int32,
-            ).reshape((-1, 1, 2))
-
-            if len(pts) >= 3:
-                cv2.fillPoly(
-                    overlay,
-                    [pts],
-                    MASK_BGR,
-                )
+            if len(seg.polygon) >= 3:
+                pts = np.array(seg.polygon, dtype=np.int32).reshape((-1, 1, 2))
+                cv2.fillPoly(overlay, [pts], MASK_BGR)
 
         cv2.addWeighted(
             overlay,
@@ -353,7 +303,9 @@ class YOLOService:
             img,
         )
 
-        # Draw bounding boxes + labels
+        # ---------------------------------------------------------
+        # Draw bounding boxes + measurements
+        # ---------------------------------------------------------
         for det in detections:
             x1, y1, x2, y2 = (
                 int(v)
@@ -402,9 +354,9 @@ class YOLOService:
             )
 
         # Timestamp + camera overlay
-        ts = meta.captured_at.strftime(
-            "%Y-%m-%d %H:%M:%S UTC"
-        )
+        ts = meta.captured_at.astimezone(
+            ZoneInfo("Asia/Kolkata")
+        ).strftime("%Y-%m-%d %H:%M:%S IST")
 
         cam_text = f"CAM {meta.camera_id} | {ts}"
 
@@ -419,19 +371,20 @@ class YOLOService:
             cv2.LINE_AA,
         )
 
+        # ---------------------------------------------------------
+        # Encode image
+        # ---------------------------------------------------------
         ok, buf = cv2.imencode(".png", img)
 
         if not ok:
             raise RuntimeError("cv2.imencode failed")
 
         return buf.tobytes()
-
+    
 
 # ── JSON serialisation helpers ────────────────────────────────────────────────
 
-def detections_to_json(
-    detections: list[DetectionBox],
-) -> str:
+def detections_to_json(detections: list[DetectionBox]) -> str:
     return json.dumps(
         [
             {
@@ -439,25 +392,34 @@ def detections_to_json(
                 "confidence": d.confidence,
                 "bbox": d.bbox,
                 "angle_deg": d.angle_deg,
-                "distance_mm": d.distance_mm,
+                "distance_mm": d.distance_mm
             }
             for d in detections
         ]
     )
 
 
-def segmentations_to_json(
-    segmentations: list[SegmentationResult],
-) -> str:
-    return json.dumps(
-        [
-            {
-                "class_name": s.class_name,
-                "confidence": s.confidence,
-                "polygon": s.polygon,
-                "area_px": s.area_px,
-                "measurement": s.measurement,
-            }
-            for s in segmentations
-        ]
-    )
+def segmentations_to_json(segmentations: list[SegmentationResult]) -> str:
+    return json.dumps([
+        {
+            "class_name": s.class_name,
+            "confidence": s.confidence,
+            "polygon": s.polygon,
+            "measurement": (
+                {
+                    "area_px": s.measurement.area_px,
+                    "length_px": s.measurement.length_px,
+                    "average_width_px": s.measurement.average_width_px,
+                    "max_width_px": s.measurement.max_width_px,
+                    "area_mm2": s.measurement.area_mm2,
+                    "length_mm": s.measurement.length_mm,
+                    "average_width_mm": s.measurement.average_width_mm,
+                    "max_width_mm": s.measurement.max_width_mm,
+    
+                }
+                if s.measurement is not None
+                else None
+            ),
+        }
+        for s in segmentations
+    ])
