@@ -109,8 +109,10 @@ def calculate_widths(
     )
 
 
-def measure_crack(mask: np.ndarray,mm_per_pixel: float | None = None) -> CrackMeasurement:
-    
+def measure_crack(
+    mask: np.ndarray,
+    mm_per_pixel: float | None = None
+) -> CrackMeasurement:
 
     cleaned_mask = clean_mask(mask)
 
@@ -124,20 +126,27 @@ def measure_crack(mask: np.ndarray,mm_per_pixel: float | None = None) -> CrackMe
         cleaned_mask,
         skeleton
     )
-    if mm_per_pixel != None:
-        area_mm = area*mm_per_pixel
-        leng_mm = length*mm_per_pixel
-        maxwidth_mm = max_width*mm_per_pixel
-        avgwidth__mm = average_width*mm_per_pixel
+
+    # Pixel measurements are always available
+    area_mm = None
+    length_mm = None
+    max_width_mm = None
+    average_width_mm = None
+
+    # Convert to real-world units only if calibration exists
+    if mm_per_pixel is not None:
+        area_mm = area * (mm_per_pixel ** 2)
+        length_mm = length * mm_per_pixel
+        max_width_mm = max_width * mm_per_pixel
+        average_width_mm = average_width * mm_per_pixel
 
     return CrackMeasurement(
         area_px=area,
         length_px=length,
         average_width_px=average_width,
         max_width_px=max_width,
-
         area_mm2=area_mm,
-        length_mm=leng_mm,
-        max_width_mm=maxwidth_mm,
-        average_width_mm= avgwidth__mm
+        length_mm=length_mm,
+        max_width_mm=max_width_mm,
+        average_width_mm=average_width_mm
     )

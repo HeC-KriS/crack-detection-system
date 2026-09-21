@@ -113,7 +113,7 @@ class YOLOService:
 
     def infer(self, frame_bgr: np.ndarray, meta: FrameMeta) -> InferenceResult:
         if self._model is None:
-         raise RuntimeError("YOLOService not loaded. Call load() first.")
+            raise RuntimeError("YOLOService not loaded. Call load() first.")
 
         t0 = time.perf_counter()
 
@@ -158,12 +158,12 @@ class YOLOService:
                 box_center_x = (x1 + x2) / 2.0
                 box_height_px = y2 - y1
 
-            # Angle: arctan(pixel_offset / focal_length)
+                # Angle: arctan(pixel_offset / focal_length)
                 pixel_offset = box_center_x - img_center_x
                 angle_rad = math.atan(pixel_offset / focal_length_px)
                 angle_deg = math.degrees(angle_rad)
 
-            # Distance: (real_height * focal_length) / pixel_height
+                # Distance: (real_height * focal_length) / pixel_height
                 distance_mm = (
                     (known_real_height_mm * focal_length_px) / box_height_px
                     if box_height_px > 0
@@ -180,7 +180,7 @@ class YOLOService:
                     )
                 )
 
-    # ── Segmentation masks ──────────────────────────────────────────────
+        # ── Segmentation masks ──────────────────────────────────────────────
         if result.masks is not None:
             for i, mask in enumerate(result.masks):
                 cls_id = (
@@ -216,7 +216,7 @@ class YOLOService:
                     )
                 )
 
-    # ── Threshold filter ────────────────────────────────────────────────
+        # ── Threshold filter ────────────────────────────────────────────────
         filtered_detections = [
             d for d in detections if d.confidence >= meta.alert_threshold
         ]
@@ -254,9 +254,7 @@ class YOLOService:
         detections: list[DetectionBox],
         segmentations: list[SegmentationResult],
         meta: FrameMeta,
-        ) -> bytes:
-               
-        
+    ) -> bytes:
         """Draw bounding boxes, segmentation overlays, measurements and metadata."""
         img = frame_bgr.copy()
         overlay = img.copy()
@@ -266,9 +264,9 @@ class YOLOService:
         TEXT_BGR = (255, 255, 255)
         ALPHA = 0.35
 
-    # ---------------------------------------------------------
-    # Draw segmentation masks first
-    # ---------------------------------------------------------
+        # ---------------------------------------------------------
+        # Draw segmentation masks first
+        # ---------------------------------------------------------
         for seg in segmentations:
             if len(seg.polygon) >= 3:
                 pts = np.array(seg.polygon, dtype=np.int32).reshape((-1, 1, 2))
@@ -283,9 +281,9 @@ class YOLOService:
             img,
         )
 
-    # ---------------------------------------------------------
-    # Draw bounding boxes + measurements
-    # ---------------------------------------------------------
+        # ---------------------------------------------------------
+        # Draw bounding boxes + measurements
+        # ---------------------------------------------------------
         for det in detections:
             x1, y1, x2, y2 = (int(v) for v in det.bbox)
 
@@ -297,7 +295,7 @@ class YOLOService:
                 2,
             )
 
-            label = f"{det.class_name} {det.confidence:.0%}"
+            label = f"{det.class_name} {det.confidence:.0%} | Dist: {det.distance_mm:.1f}mm | Ang: {det.angle_deg:.1f}deg"
 
             (tw, th), _ = cv2.getTextSize(
                 label,
@@ -306,7 +304,7 @@ class YOLOService:
                 1,
             )
 
-        # Label background
+            # Label background
             cv2.rectangle(
                 img,
                 (x1, y1 - th - 8),
@@ -315,7 +313,7 @@ class YOLOService:
                 -1,
             )
 
-        # Label text
+            # Label text
             cv2.putText(
                 img,
                 label,
@@ -327,12 +325,10 @@ class YOLOService:
                 cv2.LINE_AA,
             )
 
-    # ---------------------------------------------------------
-    # Timestamp + camera information
-    # ---------------------------------------------------------
-        ts = meta.captured_at.strftime(
-           "%Y-%m-%d %H:%M:%S UTC"
-        )
+        # ---------------------------------------------------------
+        # Timestamp + camera information
+        # ---------------------------------------------------------
+        ts = meta.captured_at.strftime("%Y-%m-%d %H:%M:%S UTC")
 
         cam_text = f"CAM {meta.camera_id} | {ts}"
 
@@ -347,24 +343,32 @@ class YOLOService:
             cv2.LINE_AA,
         )
 
-    # ---------------------------------------------------------
-    # Encode image
-    # ---------------------------------------------------------
+        # ---------------------------------------------------------
+        # Encode image
+        # ---------------------------------------------------------
         ok, buf = cv2.imencode(".png", img)
 
         if not ok:
             raise RuntimeError("cv2.imencode failed")
 
         return buf.tobytes()
-
+    
 
 # ── JSON serialisation helpers ─────────────────────────────────────────────────
 
 def detections_to_json(detections: list[DetectionBox]) -> str:
-    return json.dumps([
-        {"class_name": d.class_name, "confidence": d.confidence, "bbox": d.bbox}
-        for d in detections
-    ])
+    return json.dumps(
+        [
+            {
+                "class_name": d.class_name,
+                "confidence": d.confidence,
+                "bbox": d.bbox,
+                "angle_deg": d.angle_deg,
+                "distance_mm": d.distance_mm
+            }
+            for d in detections
+        ]
+    )
 
 
 def segmentations_to_json(segmentations: list[SegmentationResult]) -> str:

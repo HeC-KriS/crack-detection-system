@@ -6,9 +6,9 @@ pydantic-settings==2.6.1
 
 # ── Database ───────────────────────────────────────────────────────────────────
 sqlalchemy==2.0.36
-aiosqlite==0.20.0           # SQLite async driver
-asyncpg==0.30.0             # PostgreSQL async driver (comment out if using SQLite only)
-alembic==1.14.0             # DB migrations
+aiosqlite==0.20.0
+asyncpg==0.30.0
+alembic==1.14.0
 
 # ── Auth ───────────────────────────────────────────────────────────────────────
 PyJWT==2.10.0
@@ -16,15 +16,18 @@ bcrypt==5.0.0
 
 # ── ML / Vision ────────────────────────────────────────────────────────────────
 ultralytics==8.4.149
-opencv-python-headless==4.10.0.84
+opencv-contrib-python==4.10.0.84
 numpy==1.26.4
-torch>=2.1.0                # CPU build; add --index-url for CUDA builds
+scipy==1.17.1
+scikit-image==0.26.0
+skan==0.13.0
+torch>=2.1.0
 torchvision>=0.16.0
 
 # ── Notifications ──────────────────────────────────────────────────────────────
 slack-sdk==3.33.4
 
 # ── Utilities ──────────────────────────────────────────────────────────────────
-python-multipart==0.0.20    # form data (needed by FastAPI)
-httpx==0.28.0               # async HTTP (used by tests)
+python-multipart==0.0.20
+httpx==0.28.0
 python-dotenv==1.0.1
