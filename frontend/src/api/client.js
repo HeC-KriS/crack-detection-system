@@ -53,6 +53,8 @@ export const inferencesAPI = {
   list: (params) => client.get("/inferences", { params }),
   get: (id) => client.get(`/inferences/${id}`),
   imageUrl: (id) => `${API_BASE}/inferences/${id}/image`,
+  setScale: (id, mm_per_pixel) =>
+    client.patch(`/inferences/${id}/scale`, { mm_per_pixel }),
 };
 
 // ── Feedback ──────────────────────────────────────────────────────────────────

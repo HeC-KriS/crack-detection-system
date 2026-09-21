@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import client, { inferencesAPI } from "../api/client";
 import FeedbackModal from "../components/FeedbackModal";
+import CalibrateModal from "../components/Calibrate";
 
 const VERDICT_STYLES = {
   true_positive: { color: "#ef4444", bg: "rgba(239,68,68,0.1)", label: "TRUE POSITIVE" },
@@ -56,10 +57,12 @@ function SegmentationOverlay({ segmentations, imageRef }) {
   );
 }
 
-function InferenceCard({ item, highlighted, onVerify }) {
+function InferenceCard({ item, highlighted, onVerify, onRefresh }) {
   const imageRef = useRef(null);
   const [imgError, setImgError] = useState(false);
   const [imageSrc, setImageSrc] = useState(null);
+  const [showCalibrate, setShowCalibrate] = useState(false);
+
 
   useEffect(() => {
     let objectUrl;
@@ -164,6 +167,23 @@ function InferenceCard({ item, highlighted, onVerify }) {
           )}
         </div>
         <MeasurementPanel segmentations={item.segmentations} />
+
+         {imageSrc && item.segmentations?.some((sg) => sg.measurement) && (
+          <button onClick={() => setShowCalibrate(true)} style={c.scaleBtn}>
+            {item.segmentations.some((sg) => sg.measurement?.length_mm != null)
+              ? "Adjust scale"
+              : "Set scale"}
+          </button>
+        )}
+
+        {showCalibrate && (
+          <CalibrateModal
+            inferenceId={item.id}
+            imageSrc={imageSrc}
+            onClose={() => setShowCalibrate(false)}
+            onSaved={onRefresh}
+          />
+        )}
 
         {item.feedback?.comment && (
           <div style={c.comment}>"{item.feedback.comment}"</div>
@@ -345,6 +365,7 @@ export default function Queue() {
               item={item}
               highlighted={highlight === item.frame_id}
               onVerify={setSelected}
+              onRefresh={fetchItems}
             />
           ))}
         </div>
@@ -470,6 +491,17 @@ const c = {
   measurementSub: {
     fontSize: 9,
     color: "#3a4a6a",
+  },
+  scaleBtn: {
+
+    background: "#080c14",
+    border: "1px solid #1e3a5c",
+    borderRadius: 6,
+    padding: "8px",
+    fontSize: 11,
+    color: "#60a5fa",
+    cursor: "pointer",
+    fontFamily: "'DM Mono', monospace",
   },
   body: { padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10, flex: 1 },
   topRow: { display: "flex", justifyContent: "space-between", alignItems: "flex-start" },

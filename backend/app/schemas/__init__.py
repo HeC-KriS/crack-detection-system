@@ -59,7 +59,9 @@ class CameraOut(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
-
+    
+class ScaleUpdate(BaseModel):
+    mm_per_pixel: float = Field(..., gt=0)
 
 # ── Detection / Segmentation ───────────────────────────────────────────────────
 

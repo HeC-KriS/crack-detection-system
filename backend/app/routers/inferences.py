@@ -6,7 +6,7 @@ from __future__ import annotations
 import json
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import Response
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,12 +16,18 @@ from app.database import get_db
 from app.models.camera import Camera
 from app.models.feedback import OfficerFeedback
 from app.models.inference import InferenceRecord
+from app.routers.cameras import (
+    _effective_interval,
+    _effective_threshold,
+    _make_status_updater,
+)
 from app.schemas import (
     DetectionItem,
     FeedbackOut,
     InferenceListResponse,
     InferenceRecordOut,
     SegmentationItem,
+    ScaleUpdate
 )
 from app.services.storage import StorageService
 from app.utils.auth import get_current_user
@@ -74,6 +80,66 @@ def _build_record_out(rec: InferenceRecord, camera_name: str | None = None) -> I
         feedback=feedback_out,
     )
 
+def _apply_scale(seg_json: str, s: float) -> str:
+    segs = json.loads(seg_json)
+    for seg in segs:
+        m = seg.get("measurement")
+        if m:
+            m["length_mm"] = m["length_px"] * s
+            m["average_width_mm"] = m["average_width_px"] * s
+            m["max_width_mm"] = m["max_width_px"] * s
+            m["area_mm2"] = m["area_px"] * s * s   # area scales by the square
+    return json.dumps(segs)
+
+
+@router.patch("/{inference_id}/scale")
+async def set_scale(
+    inference_id: int,
+    body: ScaleUpdate,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    _user=Depends(get_current_user),
+):
+    rec = await db.get(InferenceRecord, inference_id)
+    if not rec:
+        raise HTTPException(status_code=404, detail="Inference not found.")
+
+    cam = await db.get(Camera, rec.camera_id)
+    if not cam:
+        raise HTTPException(status_code=404, detail="Camera not found.")
+
+    s = body.mm_per_pixel
+
+    
+    cam.mm_per_pixel = s
+
+    
+    result = await db.execute(
+        select(InferenceRecord).where(InferenceRecord.camera_id == cam.id)
+    )
+    records = result.scalars().all()
+    for r in records:
+        if r.segmentation_json:                      # ← same column name as before
+            r.segmentation_json = _apply_scale(r.segmentation_json, s)
+
+    await db.commit()
+    await db.refresh(cam)
+
+    # 3. Restart the worker so it uses the new scale
+    if cam.is_active:
+        mgr = request.app.state.capture_manager
+        await mgr.stop_camera(cam.id)
+        await mgr.start_camera(
+            camera_id=cam.id,
+            camera_name=cam.name,
+            stream_url=cam.stream_url,
+            mm_per_pixel=cam.mm_per_pixel,
+            frame_interval=_effective_interval(cam),
+            alert_threshold=_effective_threshold(cam),
+            on_status_change=_make_status_updater(request.app),
+        )
+
+    return {"status": "ok", "mm_per_pixel": s, "records_updated": len(records)}
 
 @router.get("", response_model=InferenceListResponse)
 async def list_inferences(
