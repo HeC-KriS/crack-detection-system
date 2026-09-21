@@ -7,6 +7,7 @@ import io
 import json
 import zipfile
 from datetime import datetime, timedelta, timezone
+from app.utils.time import now_ist
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
@@ -31,7 +32,7 @@ async def get_dashboard_stats(
     db: AsyncSession = Depends(get_db),
     _user=Depends(get_current_user),
 ):
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+    cutoff = now_ist() - timedelta(hours=24)
 
     # Frames processed in last 24h (we only store flagged ones, so this is flagged count)
     frames_24h = (
@@ -165,7 +166,7 @@ async def export_retraining_dataset(
             zf.writestr(f"metadata/{rec.frame_id}.json", json.dumps(meta, indent=2))
 
     buf.seek(0)
-    filename = f"retraining_dataset_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.zip"
+    filename = f"retraining_dataset_{now_ist().strftime('%Y%m%d_%H%M%S')}.zip"
     return StreamingResponse(
         buf,
         media_type="application/zip",

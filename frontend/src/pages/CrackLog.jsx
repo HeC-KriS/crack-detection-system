@@ -1,6 +1,7 @@
 // pages/CrackLog.jsx — Overall verified crack history
 import { useCallback, useEffect, useState } from "react";
 import { inferencesAPI } from "../api/client";
+import { formatIST } from "../utils/date";
 
 export default function CrackLog() {
   const [items, setItems] = useState([]);
@@ -113,7 +114,7 @@ function TableRow({ item }) {
       {/* Detection time */}
       <td style={styles.cell}>
         {item.captured_at
-          ? new Date(item.captured_at).toLocaleString()
+          ? formatIST(item.captured_at)
           : "—"}
       </td>
 
@@ -164,7 +165,7 @@ function TableRow({ item }) {
       {/* Verification time */}
       <td style={styles.cell}>
         {feedback?.submitted_at
-          ? new Date(feedback.submitted_at).toLocaleString()
+          ? formatIST(feedback.submitted_at)
           : "—"}
       </td>
 

@@ -12,7 +12,8 @@ import asyncio
 import logging
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
+from app.utils.time import now_ist
 from typing import TYPE_CHECKING
 
 import cv2
@@ -141,7 +142,7 @@ class CameraWorker:
                 return  # triggers reconnect in outer loop
 
             frame_id = str(uuid.uuid4())
-            captured_at = datetime.now(timezone.utc)
+            captured_at = now_ist()
 
             meta = FrameMeta(
                 frame_id=frame_id,

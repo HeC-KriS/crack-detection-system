@@ -156,8 +156,8 @@ def _make_status_updater(app):
     """Returns an async callback that updates camera status in DB."""
     async def _update(camera_id: int, status_str: str) -> None:
         from app.database import AsyncSessionLocal
-        from datetime import datetime, timezone
-
+        from datetime import datetime
+        from app.utils.time import now_ist
         status_map = {
             "online": CameraStatus.ONLINE,
             "offline": CameraStatus.OFFLINE,
@@ -170,7 +170,7 @@ def _make_status_updater(app):
             if cam:
                 cam.status = new_status
                 if new_status == CameraStatus.ONLINE:
-                    cam.last_seen_at = datetime.now(timezone.utc)
+                    cam.last_seen_at = now_ist()
                 await session.commit()
 
     return _update

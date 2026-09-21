@@ -14,7 +14,7 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-
+from zoneinfo import ZoneInfo
 import cv2
 import numpy as np
 
@@ -402,9 +402,9 @@ class YOLOService:
             )
 
         # Timestamp + camera overlay
-        ts = meta.captured_at.strftime(
-            "%Y-%m-%d %H:%M:%S UTC"
-        )
+        ts = meta.captured_at.astimezone(
+            ZoneInfo("Asia/Kolkata")
+        ).strftime("%Y-%m-%d %H:%M:%S IST")
 
         cam_text = f"CAM {meta.camera_id} | {ts}"
 

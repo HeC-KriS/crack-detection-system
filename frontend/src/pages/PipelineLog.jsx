@@ -1,6 +1,7 @@
 // pages/PipelineLog.jsx — Pipeline and camera history
 import { useCallback, useEffect, useState } from "react";
 import { camerasAPI, inferencesAPI, pipelinesAPI } from "../api/client";
+import { formatIST } from "../utils/date";
 
 const VERDICT_MAP = {
   true_positive: {
@@ -25,7 +26,7 @@ function PipelineRow({ item }) {
   return (
     <tr style={styles.row}>
       <td style={styles.cell}>
-        {new Date(item.captured_at).toLocaleString()}
+        {formatIST(item.captured_at)}
       </td>
 
       <td style={styles.cell}>

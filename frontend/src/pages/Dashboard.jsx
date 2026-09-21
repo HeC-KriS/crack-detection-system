@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { inferencesAPI, statsAPI } from "../api/client";
+import { formatIST } from "../utils/date";
 
 function StatCard({ label, value, color, sub }) {
   return (
@@ -42,7 +43,7 @@ function CameraStatusDot({ status }) {
 }
 
 function RecentAlertRow({ item }) {
-  const ts = new Date(item.captured_at).toLocaleString();
+  const ts = formatIST(item.captured_at);
   return (
     <div style={row.root}>
       <div style={row.dot}>

@@ -1,6 +1,7 @@
 // pages/Cameras.jsx — Camera management (list, add, edit, restart)
 import { useEffect, useState } from "react";
 import { camerasAPI, pipelinesAPI } from "../api/client";
+import { formatIST } from "../utils/date";
 
 const STATUS_STYLE = {
   online: { color: "#10b981", dot: "#10b981", label: "ONLINE" },
@@ -325,10 +326,8 @@ export default function Cameras() {
                           label="Last Seen"
                           value={
                             cam.last_seen_at
-                              ? new Date(
-                                  cam.last_seen_at
-                                ).toLocaleTimeString()
-                              : "Never"
+                              ? formatIST(cam.last_seen_at)
+                              : "—"
                           }
                         />
                       </div>

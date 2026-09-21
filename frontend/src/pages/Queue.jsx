@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import client, { inferencesAPI } from "../api/client";
 import FeedbackModal from "../components/FeedbackModal";
+import { formatIST } from "../utils/date";
 
 const VERDICT_STYLES = {
   true_positive: { color: "#ef4444", bg: "rgba(239,68,68,0.1)", label: "TRUE POSITIVE" },
@@ -145,7 +146,7 @@ function InferenceCard({ item, highlighted, onVerify }) {
               CAM {item.camera_id}
               {item.camera_name && <span style={c.camName}> · {item.camera_name}</span>}
             </div>
-            <div style={c.timestamp}>{new Date(item.captured_at).toLocaleString()}</div>
+            <div style={c.timestamp}>{formatIST(item.captured_at)}</div>
           </div>
           {verdict ? (
             <div style={{ ...c.verdictBadge, color: verdict.color, background: verdict.bg }}>
