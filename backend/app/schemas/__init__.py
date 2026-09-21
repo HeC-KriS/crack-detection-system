@@ -87,7 +87,9 @@ class CameraOut(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
-
+    
+class ScaleUpdate(BaseModel):
+    mm_per_pixel: float = Field(..., gt=0)
 
 # ── Detection / Segmentation ───────────────────────────────────────────────────
 
@@ -99,12 +101,21 @@ class DetectionItem(BaseModel):
     distance_mm: float | None = None
 
 
+class MeasurementItem(BaseModel):
+    area_px:float
+    length_px:float
+    average_width_px:float
+    max_width_px:float
+    area_mm2: float | None = None
+    length_mm: float | None = None
+    average_width_mm: float | None = None
+    max_width_mm: float | None = None
+
 class SegmentationItem(BaseModel):
     class_name: str
     confidence: float
     polygon: list[list[float]]  # [[x, y], ...]
-    area_px: float | None = None
-    measurement: dict[str, Any] | None = None
+    measurement: MeasurementItem | None = None
 
 
 # ── Inference Record ───────────────────────────────────────────────────────────

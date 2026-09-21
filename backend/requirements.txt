@@ -16,22 +16,18 @@ bcrypt==5.0.0
 
 # ML / Vision
 ultralytics==8.4.149
+opencv-contrib-python==4.10.0.84
 numpy==1.26.4
 scipy==1.17.1
 scikit-image==0.26.0
 skan==0.13.0
-
-# Use contrib OpenCV for ximgproc.thinning
-opencv-contrib-python==4.10.0.84
-
-# PyTorch
 torch>=2.1.0
 torchvision>=0.16.0
 
 # Notifications
 slack-sdk==3.33.4
 
-# Utilities
+# ── Utilities ──────────────────────────────────────────────────────────────────
 python-multipart==0.0.20
 httpx==0.28.0
 python-dotenv==1.0.1
